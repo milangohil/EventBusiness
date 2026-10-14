@@ -7,10 +7,13 @@ A mobile-friendly web app for all halls. **No domain, server or database needed.
 All data is saved in a Google Sheet you own, and the app is hosted free by Google Apps Script.
 
 ### What it does
-- **Home:** open enquiries, follow-ups due, upcoming events, balance to collect.
-- **+ New:** add an enquiry or booking. It shows straight away whether the hall is free for that date and slot.
-- **Records:** search and filter every enquiry and booking. Tap one to edit it, record payments, or send WhatsApp messages (thank-you, booking confirmation, receipt, balance reminder).
-- **Availability:** one date across all halls, or one hall for a whole month.
+- **Home:** greeting, key numbers, a "Needs attention" list (overdue follow-ups, balances due before an event, past events to close) and the next 14 days of events.
+- **Bookings:** search, hall filter and tabs (Active, Enquiries, Booked, Completed, Lost & cancelled), grouped by month.
+- **+ New:** tap-to-choose form. Hall cards show live **Free / Booked / Enquiries** for the chosen date and slot, and the total is worked out from guests × rate.
+- **Booking page:** one-tap Call and WhatsApp, a progress tracker with next-step buttons (Confirm booking, Mark as lost, Mark event done...), follow-up reminders, a payment progress bar, a quick "Record payment" sheet, and ready-made WhatsApp messages.
+- **Calendar:** month view for all halls or one hall. Tap a day to see every slot, then tap **Book** on a free slot to start a booking with the hall, date and slot filled in.
+- **Payments:** collected this month, outstanding and overdue amounts, a "To collect" list with reminder buttons, and the full payment history.
+- Works on phone (bottom tabs) and desktop (sidebar), with automatic dark mode.
 - **Built-in rules:**
   - A hall cannot be double-booked.
   - A booking needs a hall, date, slot and guest count.
@@ -48,7 +51,7 @@ Rensi and the owner can open the Google Sheet at any time to view or export data
 Paste the new code into the editor, then click **Deploy > Manage deployments > Edit (pencil) > Version: New version > Deploy**. The URL stays the same.
 
 ### Try it without Google
-Open `apps-script/Index.html` directly in a browser. It runs in **demo mode** and saves data only in that browser, which is useful for a quick look.
+Open `apps-script/Index.html` directly in a browser. It runs in **demo mode** and saves data only in that browser. Tap **Load sample data** to see it filled with example bookings.
 
 ### For developers
 `node --test tests/*.test.js` runs the server logic in `Code.gs` against an in-memory fake of Google Sheets.

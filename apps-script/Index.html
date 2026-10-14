@@ -1,436 +1,1255 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <base target="_top">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#7a1f2b">
   <title>Event Business</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f6f5f2; --card: #ffffff; --ink: #1f2328; --muted: #6a6f76; --line: #e3e1dc;
-      --brand: #8a3b12; --brand-soft: #f6e7dd; --ok: #1f7a4d; --ok-soft: #e1f3e9;
-      --warn: #9a6400; --warn-soft: #fbefd6; --bad: #b42318; --bad-soft: #fde7e5;
+      --bg: #f7f4ef; --surface: #ffffff; --surface-2: #f3eee7; --ink: #1c1917; --ink-2: #44403c; --muted: #78716c;
+      --line: #e9e3da; --line-2: #d9d0c4;
+      --brand: #7a1f2b; --brand-ink: #ffffff; --brand-soft: #f6e8ea; --brand-hover: #8f2735;
+      --gold: #b7791f; --gold-soft: #fbf1df;
+      --ok: #15803d; --ok-soft: #e4f4e9; --warn: #b45309; --warn-soft: #fdf1de; --bad: #b91c1c; --bad-soft: #fde9e9;
+      --info: #4338ca; --info-soft: #ebebfc; --violet: #7e22ce; --violet-soft: #f3e8fd; --slate: #475569; --slate-soft: #edf0f4;
+      --shadow-sm: 0 1px 2px rgba(28, 25, 23, .05);
+      --shadow: 0 1px 2px rgba(28, 25, 23, .05), 0 6px 20px rgba(28, 25, 23, .06);
+      --shadow-lg: 0 12px 40px rgba(28, 25, 23, .18);
+      --r: 16px; --r-sm: 11px;
+      --font: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --display: "Fraunces", Georgia, "Times New Roman", serif;
+      --tabbar-h: 66px;
     }
-    * { box-sizing: border-box; }
-    body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
-    header { position: sticky; top: 0; z-index: 5; background: var(--brand); color: #fff; padding: 12px 16px; display: flex; align-items: center; gap: 8px; }
-    header h1 { font-size: 17px; margin: 0; flex: 1; }
-    header small { opacity: .8; font-size: 12px; }
-    main { max-width: 760px; margin: 0 auto; padding: 16px 16px 96px; }
-    nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--card); border-top: 1px solid var(--line); display: flex; z-index: 5; }
-    nav button { flex: 1; border: 0; background: none; padding: 12px 4px 14px; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer; }
-    nav button.active { color: var(--brand); font-weight: 600; box-shadow: inset 0 3px 0 var(--brand); }
-    h2 { font-size: 18px; margin: 4px 0 12px; }
-    h3 { font-size: 15px; margin: 20px 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
-    .tap { cursor: pointer; }
-    .tap:hover { border-color: var(--brand); }
-    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
-    .stat b { display: block; font-size: 22px; }
-    .stat span { color: var(--muted); font-size: 13px; }
-    .row { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-    .muted { color: var(--muted); font-size: 13px; }
-    .pill { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; background: var(--line); white-space: nowrap; }
-    .pill.Booked, .pill.Completed { background: var(--ok-soft); color: var(--ok); }
-    .pill.Enquiry, .pill.Visit, .pill.Tasting { background: var(--warn-soft); color: var(--warn); }
-    .pill.Lost, .pill.Cancelled { background: var(--bad-soft); color: var(--bad); }
-    label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
-    input, select, textarea { width: 100%; font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
-    textarea { min-height: 70px; }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
-    .btn { display: inline-block; border: 0; border-radius: 8px; padding: 11px 16px; font: inherit; font-weight: 600; cursor: pointer; background: var(--brand); color: #fff; text-decoration: none; text-align: center; }
-    .btn.secondary { background: var(--brand-soft); color: var(--brand); }
-    .btn.wa { background: #1f7a4d; }
-    .btn.block { display: block; width: 100%; margin-top: 16px; }
-    .btn[disabled] { opacity: .6; cursor: wait; }
-    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-    .notice { padding: 10px 12px; border-radius: 8px; margin: 10px 0; font-size: 14px; }
-    .notice.ok { background: var(--ok-soft); color: var(--ok); }
-    .notice.warn { background: var(--warn-soft); color: var(--warn); }
-    .notice.bad { background: var(--bad-soft); color: var(--bad); }
-    .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-    .filters input { grid-column: 1 / -1; }
-    table { width: 100%; border-collapse: collapse; }
-    td, th { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; font-size: 14px; vertical-align: top; }
-    th { color: var(--muted); font-weight: 600; font-size: 13px; }
-    .slot { display: inline-block; min-width: 92px; padding: 4px 8px; border-radius: 6px; font-size: 12px; }
-    .slot.free { background: var(--ok-soft); color: var(--ok); }
-    .slot.taken { background: var(--bad-soft); color: var(--bad); }
-    .slot.interest { background: var(--warn-soft); color: var(--warn); }
-    .seg { display: flex; gap: 6px; margin-bottom: 12px; }
-    .seg button { flex: 1; }
-    .demo { background: var(--warn-soft); color: var(--warn); text-align: center; font-size: 13px; padding: 6px 16px; }
-    .empty { color: var(--muted); text-align: center; padding: 24px 8px; }
-    #toast { position: fixed; left: 16px; right: 16px; bottom: 76px; max-width: 520px; margin: 0 auto; z-index: 10; display: none; }
-    @media (min-width: 640px) { .stats { grid-template-columns: repeat(4, 1fr); } }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12100e; --surface: #1c1916; --surface-2: #26221e; --ink: #f5f0ea; --ink-2: #d9d1c7; --muted: #a59b90;
+        --line: #2e2924; --line-2: #3e3731;
+        --brand: #e58591; --brand-ink: #2a0d12; --brand-soft: #3a1e23; --brand-hover: #f0a0aa;
+        --gold: #e5b55f; --gold-soft: #3a2d17;
+        --ok: #5fd88d; --ok-soft: #173223; --warn: #f5b84a; --warn-soft: #3b2c12; --bad: #f88b8b; --bad-soft: #3e1c1c;
+        --info: #aab6ff; --info-soft: #23264a; --violet: #d6b2fd; --violet-soft: #34214b; --slate: #cbd5e1; --slate-soft: #272d36;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 20px rgba(0, 0, 0, .25); --shadow-lg: 0 12px 40px rgba(0, 0, 0, .6);
+      }
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+    button, input, select, textarea { font: inherit; color: inherit; }
+    a { color: inherit; }
+    svg.i { width: 20px; height: 20px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+    svg.i.sm { width: 16px; height: 16px; }
+    svg.i.lg { width: 24px; height: 24px; }
+    :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 8px; }
+
+    /* ---------- shell ---------- */
+    .app { display: flex; min-height: 100vh; }
+    .sidebar { display: none; }
+    .main { flex: 1; min-width: 0; }
+    .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px; padding: 12px 16px; padding-top: max(12px, env(safe-area-inset-top));
+      background: var(--bg); background: color-mix(in srgb, var(--bg) 86%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid transparent; transition: border-color .2s; }
+    .topbar.scrolled { border-bottom-color: var(--line); }
+    .topbar h1 { margin: 0; flex: 1; min-width: 0; font: 600 21px/1.2 var(--display); letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .topbar .sync { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    @media (max-width: 520px) { .topbar .sync { display: none; } }
+    .content { max-width: 1120px; margin: 0 auto; padding: 4px 16px calc(var(--tabbar-h) + 40px + env(safe-area-inset-bottom)); }
+    .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: repeat(5, 1fr);
+      height: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom); background: var(--surface); border-top: 1px solid var(--line); }
+    .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: none; color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; }
+    .tab.active { color: var(--brand); }
+    .tab .fab { width: 52px; height: 52px; margin-top: -26px; border-radius: 18px; display: grid; place-items: center; background: var(--brand); color: var(--brand-ink); box-shadow: 0 8px 20px color-mix(in srgb, var(--brand) 40%, transparent); }
+    .tab .fab svg { width: 26px; height: 26px; }
+
+    @media (min-width: 960px) {
+      .sidebar { display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100vh; width: 252px; flex: none; padding: 22px 14px; background: var(--surface); border-right: 1px solid var(--line); }
+      .tabbar { display: none; }
+      .topbar { padding: 20px 36px 14px; }
+      .content { padding: 4px 36px 56px; }
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 4px 10px 22px; }
+    .brand-mark { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--brand); color: var(--brand-ink); font: 600 17px var(--display); }
+    .brand b { display: block; font: 600 17px/1.2 var(--display); }
+    .brand span { font-size: 12px; color: var(--muted); }
+    .side-link { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 11px; border: 0; background: none; color: var(--ink-2); font-weight: 600; font-size: 14px; cursor: pointer; text-align: left; }
+    .side-link:hover { background: var(--surface-2); }
+    .side-link.active { background: var(--brand-soft); color: var(--brand); }
+    .side-new { margin: 0 0 14px; }
+    .side-foot { margin-top: auto; padding: 12px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); word-break: break-all; }
+
+    /* ---------- building blocks ---------- */
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow-sm); }
+    .card-pad { padding: 16px; }
+    .card + .card, .card + .section, .section + .card { margin-top: 14px; }
+    .section { margin-top: 24px; }
+    .section-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 2px 10px; }
+    .section-h h2 { margin: 0; font: 600 17px/1.3 var(--display); }
+    .section-h .count { color: var(--muted); font-weight: 500; font-family: var(--font); font-size: 14px; }
+    .link { border: 0; background: none; color: var(--brand); font-weight: 600; font-size: 13px; cursor: pointer; padding: 4px; }
+    .muted { color: var(--muted); }
+    .small { font-size: 13px; }
+    .hint { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+    .grid-2 { display: grid; gap: 14px; }
+    .grid-2 > *, .cal-layout > * { min-width: 0; }
+    @media (min-width: 960px) { .grid-2 { grid-template-columns: 1.15fr 1fr; align-items: start; } .grid-2 > .section, .grid-2 > div > .section:first-child { margin-top: 0; } }
+    .spacer { flex: 1; }
+
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 18px; border-radius: 12px; border: 1px solid transparent;
+      font-weight: 650; font-size: 14.5px; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background .15s, transform .05s; }
+    .btn:active { transform: scale(.98); }
+    .btn-primary { background: var(--brand); color: var(--brand-ink); }
+    .btn-primary:hover { background: var(--brand-hover); }
+    .btn-secondary { background: var(--surface); border-color: var(--line-2); color: var(--ink); }
+    .btn-secondary:hover { background: var(--surface-2); }
+    .btn-soft { background: var(--brand-soft); color: var(--brand); }
+    .btn-ok { background: var(--ok); color: #fff; }
+    .btn-danger { background: var(--bad-soft); color: var(--bad); }
+    .btn-wa { background: #1f8f4e; color: #fff; }
+    .btn-block { width: 100%; }
+    .btn-sm { min-height: 36px; padding: 6px 12px; font-size: 13px; border-radius: 10px; }
+    .btn-icon { width: 42px; min-height: 42px; padding: 0; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); color: var(--ink-2); cursor: pointer; display: inline-grid; place-items: center; }
+    .btn[disabled], .btn.busy { opacity: .65; pointer-events: none; }
+    .spin { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* status pills */
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 650; white-space: nowrap; background: var(--slate-soft); color: var(--slate); }
+    .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    .st-enquiry { background: var(--warn-soft); color: var(--warn); }
+    .st-visit { background: var(--info-soft); color: var(--info); }
+    .st-tasting { background: var(--violet-soft); color: var(--violet); }
+    .st-booked { background: var(--ok-soft); color: var(--ok); }
+    .st-completed { background: var(--slate-soft); color: var(--slate); }
+    .st-cancelled { background: var(--slate-soft); color: var(--muted); }
+    .st-lost { background: var(--bad-soft); color: var(--bad); }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 7px; font-size: 11.5px; font-weight: 700; }
+    .tag-bad { background: var(--bad-soft); color: var(--bad); }
+    .tag-warn { background: var(--warn-soft); color: var(--warn); }
+    .tag-ok { background: var(--ok-soft); color: var(--ok); }
+
+    /* KPIs */
+    .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    @media (min-width: 700px) { .kpis { grid-template-columns: repeat(4, 1fr); gap: 14px; } }
+    .kpi { padding: 14px; border-radius: var(--r); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-sm); text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 8px; }
+    .kpi:hover { border-color: var(--line-2); }
+    .kpi .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; }
+    .kpi b { font: 600 24px/1.1 var(--display); letter-spacing: -.01em; }
+    .kpi span { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+    .ic-brand { background: var(--brand-soft); color: var(--brand); }
+    .ic-ok { background: var(--ok-soft); color: var(--ok); }
+    .ic-warn { background: var(--warn-soft); color: var(--warn); }
+    .ic-info { background: var(--info-soft); color: var(--info); }
+    .ic-gold { background: var(--gold-soft); color: var(--gold); }
+
+    .hello { margin: 4px 2px 16px; }
+    .hello h2 { margin: 0; font: 600 26px/1.2 var(--display); letter-spacing: -.015em; }
+    .hello p { margin: 4px 0 0; color: var(--muted); }
+
+    /* list rows */
+    .list { overflow: hidden; }
+    .row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 0; border-top: 1px solid var(--line); background: none; width: 100%; text-align: left; cursor: pointer; text-decoration: none; color: inherit; }
+    .row:first-child { border-top: 0; }
+    .row:hover { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+    .row .body { flex: 1; min-width: 0; }
+    .row .title { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row .meta { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row .end { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex: none; text-align: right; }
+    .row .amt { font-weight: 700; font-size: 14px; }
+    .row .chev { color: var(--line-2); }
+    .dt { width: 48px; flex: none; border-radius: 12px; text-align: center; padding: 6px 0 7px; background: var(--surface-2); line-height: 1.05; }
+    .dt b { display: block; font: 600 19px/1.1 var(--display); }
+    .dt span { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    .dt.booked { background: var(--ok-soft); } .dt.booked span, .dt.booked b { color: var(--ok); }
+    .dt.open { background: var(--warn-soft); } .dt.open span, .dt.open b { color: var(--warn); }
+    .dt.closed { opacity: .7; }
+    .dt.nodate b { font-size: 15px; padding: 4px 0; }
+    .avatar { width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; }
+    .group-h { padding: 18px 4px 8px; font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; }
+
+    .empty { padding: 30px 18px; text-align: center; color: var(--muted); }
+    .empty .ic { width: 52px; height: 52px; margin: 0 auto 10px; border-radius: 16px; display: grid; place-items: center; background: var(--surface-2); color: var(--muted); }
+    .empty b { display: block; color: var(--ink); font-weight: 650; margin-bottom: 2px; }
+    .empty .btn { margin-top: 14px; }
+
+    /* chips & segmented */
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chips.scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 2px 16px; }
+    .chips.scroll::-webkit-scrollbar { display: none; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 7px 14px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--surface); color: var(--ink-2); font-weight: 600; font-size: 13.5px; cursor: pointer; white-space: nowrap; }
+    .chip:hover { border-color: var(--muted); }
+    .chip.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+    .chip .n { font-size: 12px; opacity: .7; font-weight: 600; }
+    .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border-radius: 13px; background: var(--surface-2); }
+    .seg button { min-height: 40px; border: 0; border-radius: 10px; background: none; font-weight: 650; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+
+    /* forms */
+    .form-sec { padding: 16px; }
+    .form-sec + .form-sec { border-top: 1px solid var(--line); }
+    .form-sec h3 { margin: 0 0 4px; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+    .field { margin-top: 14px; }
+    .field > label, .lbl { display: block; font-size: 13px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; }
+    .req { color: var(--brand); }
+    .input { width: 100%; min-height: 46px; padding: 11px 13px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--surface); font-size: 16px; transition: border-color .15s, box-shadow .15s; }
+    .input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent); }
+    textarea.input { min-height: 84px; resize: vertical; }
+    .input-wrap { display: flex; align-items: stretch; }
+    .input-wrap .pre { display: grid; place-items: center; padding: 0 12px; border: 1px solid var(--line-2); border-right: 0; border-radius: 12px 0 0 12px; background: var(--surface-2); color: var(--muted); font-weight: 600; }
+    .input-wrap .input { border-radius: 0 12px 12px 0; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    .has-err .input { border-color: var(--bad); }
+    .err { color: var(--bad); font-size: 12.5px; font-weight: 600; margin-top: 6px; }
+    .err:empty { display: none; }
+    .hall-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+    .hall { text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--surface); cursor: pointer; min-height: 58px; }
+    .hall b { display: block; font-size: 14px; font-weight: 650; line-height: 1.25; }
+    .hall small { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--muted); margin-top: 3px; }
+    .hall small::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--line-2); }
+    .hall.free small { color: var(--ok); } .hall.free small::before { background: var(--ok); }
+    .hall.interest small { color: var(--warn); } .hall.interest small::before { background: var(--warn); }
+    .hall.taken small { color: var(--bad); } .hall.taken small::before { background: var(--bad); }
+    .hall.taken { background: var(--surface-2); }
+    .hall.on { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); background: var(--brand-soft); }
+    .calc { margin-top: 8px; padding: 10px 12px; border-radius: 11px; background: var(--surface-2); font-size: 13.5px; display: flex; justify-content: space-between; gap: 8px; }
+    .calc b { font-size: 15px; }
+    .savebar { position: sticky; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 10px); z-index: 10; margin-top: 16px; display: flex; gap: 10px; padding: 10px; border-radius: 18px; background: var(--surface); background: color-mix(in srgb, var(--surface) 92%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border: 1px solid var(--line); box-shadow: var(--shadow); }
+    .savebar .btn-primary { flex: 1; }
+    @media (min-width: 960px) { .savebar { bottom: 16px; } .form-wrap { max-width: 760px; } }
+
+    /* detail */
+    .hero { padding: 18px; }
+    .hero-top { display: flex; gap: 14px; align-items: flex-start; }
+    .hero-top .dt { width: 60px; padding: 8px 0 9px; }
+    .hero-top .dt b { font-size: 24px; }
+    .hero h2 { margin: 0 0 4px; font: 600 23px/1.2 var(--display); letter-spacing: -.01em; word-break: break-word; }
+    .facts { display: grid; gap: 9px; margin-top: 16px; }
+    .fact { display: flex; align-items: center; gap: 10px; color: var(--ink-2); font-size: 14.5px; }
+    .fact svg { color: var(--muted); }
+    .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+    .actions .btn { flex-direction: column; gap: 4px; min-height: 62px; font-size: 12.5px; padding: 8px; }
+    .steps { display: flex; align-items: center; gap: 4px; margin: 4px 0 14px; }
+    .step { flex: 1; text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); }
+    .step i { display: block; height: 5px; border-radius: 99px; background: var(--line); margin-bottom: 6px; }
+    .step.done i { background: var(--ok); } .step.done { color: var(--ok); }
+    .step.cur i { background: var(--brand); } .step.cur { color: var(--brand); }
+    .banner { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; font-size: 14px; }
+    .banner svg { margin-top: 1px; }
+    .banner-bad { background: var(--bad-soft); color: var(--bad); }
+    .banner-warn { background: var(--warn-soft); color: var(--warn); }
+    .banner-ok { background: var(--ok-soft); color: var(--ok); }
+    .banner-info { background: var(--info-soft); color: var(--info); }
+    .next-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+    .money-big { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; }
+    .money-big b { font: 600 26px/1.1 var(--display); }
+    .bar { height: 10px; border-radius: 99px; background: var(--surface-2); overflow: hidden; margin: 12px 0 10px; }
+    .bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--ok), color-mix(in srgb, var(--ok) 70%, #fff)); }
+    .split { display: flex; justify-content: space-between; font-size: 13.5px; }
+    .kv { display: grid; grid-template-columns: 120px 1fr; gap: 10px 12px; font-size: 14px; }
+    .kv dt { color: var(--muted); }
+    .kv dd { margin: 0; word-break: break-word; }
+    .msg-row .avatar { background: #e3f5ea; color: #1f8f4e; }
+    @media (prefers-color-scheme: dark) { .msg-row .avatar { background: #173223; color: #5fd88d; } }
+
+    /* calendar */
+    .cal-head { display: flex; align-items: center; gap: 8px; margin: 14px 0 10px; }
+    .cal-head h3 { margin: 0; flex: 1; font: 600 19px var(--display); }
+    .cal { padding: 10px; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .cal-dow { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 4px 0 6px; letter-spacing: .04em; }
+    .day { position: relative; aspect-ratio: 1 / 1.08; min-height: 44px; border: 0; border-radius: 11px; background: none; cursor: pointer; padding: 5px 2px 4px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; color: var(--ink); }
+    .day:hover { background: var(--surface-2); }
+    .day .num { font-size: 14px; font-weight: 650; }
+    .day.past .num { color: var(--muted); }
+    .day.today .num { color: var(--brand); }
+    .day.today::after { content: ""; position: absolute; top: 3px; right: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--brand); }
+    .day.sel { background: var(--ink); color: var(--bg); }
+    .day.sel .num { color: var(--bg); }
+    .slots { display: flex; gap: 3px; width: 70%; }
+    .slots i { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+    .slots i.b { background: var(--ok); } .slots i.e { background: var(--warn); }
+    .day.sel .slots i:not(.b):not(.e) { background: color-mix(in srgb, var(--bg) 30%, transparent); }
+    .load { font-size: 11px; font-weight: 700; color: var(--ok); }
+    .load.zero { color: transparent; }
+    .day.sel .load { color: var(--bg); }
+    .day.sel .load.zero { color: transparent; }
+    .heat { position: absolute; inset: auto 20% 5px; height: 4px; border-radius: 3px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); padding: 10px 6px 2px; }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 14px; height: 6px; border-radius: 3px; background: var(--line); }
+    .legend i.b { background: var(--ok); } .legend i.e { background: var(--warn); }
+    .slot-row { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-top: 1px solid var(--line); }
+    .slot-row:first-child { border-top: 0; }
+    .slot-row .lbl2 { width: 76px; flex: none; font-size: 13px; font-weight: 650; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .slot-row .body { flex: 1; min-width: 0; }
+    .hall-block + .hall-block { margin-top: 10px; }
+    .hall-block h4 { margin: 0; padding: 12px 14px 0; font-size: 14px; }
+    @media (min-width: 960px) { .cal-layout { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; } .cal-layout > .side { position: sticky; top: 90px; } }
+
+    /* sheet / modal */
+    .sheet-root { position: fixed; inset: 0; z-index: 60; display: none; }
+    .sheet-root.open { display: block; }
+    .backdrop { position: absolute; inset: 0; background: rgba(20, 16, 12, .45); animation: fade .18s ease-out; }
+    .sheet { position: absolute; left: 0; right: 0; bottom: 0; max-height: 92vh; overflow: auto; background: var(--surface); border-radius: 22px 22px 0 0; padding: 8px 18px calc(20px + env(safe-area-inset-bottom)); box-shadow: var(--shadow-lg); animation: up .24s cubic-bezier(.2, .9, .3, 1); }
+    .sheet .grab { width: 40px; height: 5px; border-radius: 99px; background: var(--line-2); margin: 4px auto 12px; }
+    .sheet h3 { margin: 0 0 4px; font: 600 20px/1.25 var(--display); }
+    .sheet .sub { color: var(--muted); font-size: 14px; margin: 0 0 6px; }
+    .sheet .btns { display: flex; gap: 10px; margin-top: 20px; }
+    .sheet .btns .btn { flex: 1; }
+    .amount-input { font: 600 28px var(--display); text-align: left; }
+    @media (min-width: 700px) { .sheet { left: 50%; right: auto; bottom: auto; top: 50%; width: 480px; transform: translate(-50%, -50%); border-radius: 22px; padding: 22px 24px 24px; animation: pop .2s ease-out; } .sheet .grab { display: none; } }
+    @keyframes fade { from { opacity: 0; } }
+    @keyframes up { from { transform: translateY(40px); opacity: .4; } }
+    @keyframes pop { from { opacity: 0; transform: translate(-50%, -47%) scale(.98); } }
+
+    /* toast, demo bar, skeleton */
+    .toast { position: fixed; left: 16px; right: 16px; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 14px); z-index: 70; max-width: 460px; margin: 0 auto;
+      display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 14px; background: var(--ink); color: var(--bg); box-shadow: var(--shadow-lg); font-size: 14px; font-weight: 500; animation: up .22s ease-out; }
+    .toast.bad { background: var(--bad); color: #fff; }
+    .toast .t-msg { flex: 1; }
+    .toast a, .toast button { flex: none; border: 0; background: color-mix(in srgb, var(--bg) 18%, transparent); color: inherit; font-weight: 700; font-size: 13px; padding: 7px 11px; border-radius: 9px; text-decoration: none; cursor: pointer; }
+    @media (min-width: 960px) { .toast { bottom: 24px; left: auto; right: 24px; } }
+    .demo { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 16px; padding: 10px 14px; border-radius: 12px; background: var(--gold-soft); color: var(--gold); font-size: 13px; font-weight: 600; }
+    .demo span { flex: 1; min-width: 180px; }
+    .demo button { border: 0; background: none; color: inherit; font-weight: 750; text-decoration: underline; cursor: pointer; padding: 2px; }
+    .sk { border-radius: 12px; background: linear-gradient(90deg, var(--surface-2), var(--line), var(--surface-2)); background-size: 200% 100%; animation: sh 1.2s infinite linear; }
+    @keyframes sh { to { background-position: -200% 0; } }
+    .search { position: relative; }
+    .search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+    .search .input { padding-left: 42px; }
+    .toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
+    .toolbar .search { flex: 1; }
+    .toolbar select.input { width: auto; max-width: 46%; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Event Business</h1>
-    <small id="who"></small>
-    <button class="btn secondary" style="padding:6px 10px" onclick="reload()">Refresh</button>
-  </header>
-  <div id="demo" class="demo" hidden>Demo mode: data is saved only in this browser. Deploy with Google Apps Script to share it with the team.</div>
-  <main id="view"><div class="empty">Loading...</div></main>
-  <div id="toast" class="notice"></div>
-  <nav>
-    <button data-tab="home" onclick="go('home')">Home</button>
-    <button data-tab="add" onclick="go('add')">+ New</button>
-    <button data-tab="records" onclick="go('records')">Records</button>
-    <button data-tab="availability" onclick="go('availability')">Availability</button>
-  </nav>
+  <div class="app">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <header class="topbar" id="topbar"></header>
+      <main class="content" id="view" aria-live="polite"></main>
+    </div>
+  </div>
+  <nav class="tabbar" id="tabbar"></nav>
+  <div class="sheet-root" id="sheet"></div>
+  <div id="toast-root"></div>
 
 <script>
-/* ------------------------------------------------------------------ server calls */
+/* =================================================================== setup */
 
-var DEMO = !(window.google && google.script && google.script.run);
+const BRAND = 'Event Business';
+const DEMO = !(window.google && google.script && google.script.run);
+const $ = (s, el) => (el || document).querySelector(s);
+
+const ICONS = {
+  home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9v12h5v-6h4v6h5V9"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  calendar: '<rect x="3" y="4.5" width="18" height="17" rx="2.5"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/>',
+  wallet: '<path d="M20 7V5.5A1.5 1.5 0 0 0 18.5 4h-13A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h14a1.5 1.5 0 0 0 1.5-1.5V9a1.5 1.5 0 0 0-1.5-1.5H5.5A2.5 2.5 0 0 1 3 5"/><path d="M16.5 14h.01"/>',
+  phone: '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>',
+  chat: '<path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.5L3 21l2-5.4A8.5 8.5 0 1 1 21 11.5z"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+  left: '<path d="m15 18-6-6 6-6"/>',
+  right: '<path d="m9 18 6-6-6-6"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>',
+  pin: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+  refresh: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  alert: '<circle cx="12" cy="12" r="9"/><path d="M12 8v4.5M12 16h.01"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>',
+  rupee: '<path d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a5 5 0 0 0 0-10"/>',
+  spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/>',
+  inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z"/>',
+  note: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  party: '<path d="M5.8 11.3 2 22l10.7-3.8"/><path d="M4 3h.01M22 8h.01M15 2h.01M22 20h.01M22 2l-2.2.7a2.9 2.9 0 0 0-1.9 3.2c.1.9-.6 1.6-1.4 1.6h-.4c-.9 0-1.6.7-1.8 1.5L14 10"/><path d="m22 13-.8-.3c-.9-.3-1.8.3-2 1.2-.1.6-.7 1-1.3 1H17M11 2l.3.8c.3.9-.3 1.8-1.2 2-.6.1-1 .7-1 1.3V7"/><path d="M11 13c1.9 1.9 2.8 4.2 2 5-.8.8-3.1-.1-5-2-1.9-1.9-2.8-4.2-2-5 .8-.8 3.1.1 5 2Z"/>'
+};
+function icon(name, cls) { return '<svg class="i ' + (cls || '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || '') + '</svg>'; }
+
+const STATUS = {
+  'Enquiry': { cls: 'st-enquiry', group: 'open' },
+  'Visit Scheduled': { cls: 'st-visit', group: 'open' },
+  'Tasting Scheduled': { cls: 'st-tasting', group: 'open' },
+  'Booked': { cls: 'st-booked', group: 'booked' },
+  'Completed': { cls: 'st-completed', group: 'closed' },
+  'Cancelled': { cls: 'st-cancelled', group: 'closed' },
+  'Lost': { cls: 'st-lost', group: 'closed' }
+};
+const NEXT = {
+  'Enquiry': ['Visit Scheduled', 'Tasting Scheduled', 'Booked', 'Lost'],
+  'Visit Scheduled': ['Tasting Scheduled', 'Booked', 'Lost'],
+  'Tasting Scheduled': ['Booked', 'Lost'],
+  'Booked': ['Completed', 'Cancelled'],
+  'Completed': [],
+  'Cancelled': ['Enquiry'],
+  'Lost': ['Enquiry']
+};
+const NEXT_LABEL = {
+  'Visit Scheduled': 'Hall visit fixed', 'Tasting Scheduled': 'Tasting fixed', 'Booked': 'Confirm booking',
+  'Lost': 'Mark as lost', 'Completed': 'Mark event done', 'Cancelled': 'Cancel booking', 'Enquiry': 'Reopen as enquiry'
+};
+const LOST_REASONS = ['Price too high', 'Date not available', 'Chose another venue', 'No response', 'Event postponed'];
+const RECORD_KEYS = ['status', 'customerName', 'phone', 'address', 'eventType', 'eventDate', 'slot', 'hall', 'guests', 'source', 'ratePerPlate', 'totalAmount', 'followUpDate', 'lostReason', 'notes'];
+
+/* =================================================================== server */
 
 function call(fn, arg) {
   if (DEMO) return DemoServer.call(fn, arg);
-  return new Promise(function (resolve, reject) {
-    google.script.run.withSuccessHandler(resolve).withFailureHandler(function (e) {
-      reject(new Error(e && e.message ? e.message : String(e)));
-    })[fn](arg);
+  return new Promise((resolve, reject) => {
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(e => reject(new Error(e && e.message ? e.message : String(e))))[fn](arg);
   });
 }
 
-/* ------------------------------------------------------------------ state */
+/* =================================================================== state */
 
-var S = { data: null, tab: 'home', filters: { q: '', status: 'Active', hall: '' }, avail: { mode: 'date', date: '', hall: '', month: '' } };
+const S = {
+  data: null, idx: {}, route: { view: 'home' }, syncing: false, lastLoad: 0,
+  form: null, errors: {}, prefill: null,
+  ui: { bkTab: 'active', q: '', hall: '', calHall: '', calMonth: '', calDay: '', payTab: 'dues' }
+};
 
-function reload() {
-  return call('apiBootstrap').then(function (d) {
-    S.data = d;
-    document.getElementById('who').textContent = d.user;
-    if (!S.avail.date) S.avail.date = d.today;
-    if (!S.avail.month) S.avail.month = d.today.slice(0, 7);
-    render();
-  }).catch(showError);
+async function reload(silent) {
+  S.syncing = true; renderTopbar();
+  try {
+    const d = await call('apiBootstrap');
+    S.data = d; S.lastLoad = Date.now();
+    buildIndex();
+    if (!S.ui.calMonth) S.ui.calMonth = d.today.slice(0, 7);
+    if (!S.ui.calDay) S.ui.calDay = d.today;
+  } catch (e) {
+    if (!silent || !S.data) showFatal(e);
+    else toast(e.message, { bad: true });
+  } finally {
+    S.syncing = false;
+  }
+  if (S.data) render();
 }
 
-function go(tab, arg) {
-  S.tab = tab; S.arg = arg;
+function buildIndex() {
+  const idx = {};
+  S.data.records.forEach(r => {
+    if (!r.hall || !r.eventDate || !r.slot) return;
+    const k = r.hall + '|' + r.eventDate + '|' + r.slot;
+    const e = idx[k] || (idx[k] = { booked: null, interest: [] });
+    if (isBlocking(r)) e.booked = r; else if (isOpen(r)) e.interest.push(r);
+  });
+  S.idx = idx;
+}
+function slotInfo(hall, date, slot, exceptId) {
+  const e = S.idx[hall + '|' + date + '|' + slot];
+  if (!e) return { booked: null, interest: [] };
+  return {
+    booked: e.booked && e.booked.id !== exceptId ? e.booked : null,
+    interest: e.interest.filter(r => r.id !== exceptId)
+  };
+}
+
+/* =================================================================== routing */
+
+const VIEWS = ['home', 'bookings', 'form', 'detail', 'calendar', 'payments'];
+function routeHash(r) { return r.view + (r.id ? '/' + r.id : ''); }
+function parseHash(h) {
+  const p = String(h || '').replace(/^#/, '').split('/');
+  return { view: VIEWS.indexOf(p[0]) !== -1 ? p[0] : 'home', id: p[1] || '' };
+}
+const Hist = (!DEMO && google.script.history) ? {
+  push: r => google.script.history.push(r, {}, routeHash(r)),
+  listen: fn => google.script.history.setChangeHandler(e => fn(e.state && e.state.view ? e.state : parseHash(e.location && e.location.hash)))
+} : {
+  push: r => { const h = '#' + routeHash(r); if (location.hash !== h) { S._skipHash = h; location.hash = h; } },
+  listen: fn => window.addEventListener('hashchange', () => { if (S._skipHash === location.hash) { S._skipHash = null; return; } fn(parseHash(location.hash)); })
+};
+Hist.listen(r => { S.route = r; if (r.view === 'form') startForm(); render(); window.scrollTo(0, 0); });
+
+function go(view, id, opts) {
+  opts = opts || {};
+  closeSheet();
+  S.route = { view, id: id || '', from: opts.from || null };
+  if (view === 'form') startForm();
+  Hist.push(S.route);
   render();
   window.scrollTo(0, 0);
 }
+function back() {
+  const r = S.route;
+  if (r.from) return go(r.from.view, r.from.id);
+  if (r.view === 'form' && r.id) return go('detail', r.id);
+  go(r.view === 'detail' ? 'bookings' : 'home');
+}
+
+/* =================================================================== helpers */
+
+function esc(s) { return String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+const INR = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+function money(n) { return n === '' || n === undefined || n === null || isNaN(Number(n)) ? '-' : INR.format(Number(n)); }
+function moneyShort(n) {
+  n = Number(n) || 0;
+  const a = Math.abs(n);
+  if (a >= 1e7) return '₹' + +(n / 1e7).toFixed(2) + ' Cr';
+  if (a >= 1e5) return '₹' + +(n / 1e5).toFixed(2) + ' L';
+  if (a >= 1e3) return '₹' + +(n / 1e3).toFixed(1) + 'K';
+  return '₹' + n;
+}
+function d(iso) { return new Date(iso + 'T00:00:00Z'); }
+function fmt(iso, o) { return iso ? d(iso).toLocaleDateString('en-IN', Object.assign({ timeZone: 'UTC' }, o)) : ''; }
+function fmtLong(iso) { return iso ? fmt(iso, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : 'Date not set'; }
+function fmtMed(iso) { return iso ? fmt(iso, { weekday: 'short', day: 'numeric', month: 'short' }) : 'No date'; }
+function addDays(iso, n) { const x = d(iso); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); }
+function diffDays(iso) { return Math.round((d(iso) - d(S.data.today)) / 864e5); }
+function rel(iso) {
+  if (!iso) return '';
+  const n = diffDays(iso);
+  if (n === 0) return 'Today'; if (n === 1) return 'Tomorrow'; if (n === -1) return 'Yesterday';
+  if (n > 1 && n < 60) return 'in ' + n + ' days';
+  if (n < -1 && n > -60) return -n + ' days ago';
+  return fmt(iso, { month: 'short', year: 'numeric' });
+}
+function monthLabel(ym) { return fmt(ym + '-01', { month: 'long', year: 'numeric' }); }
+function initials(name) { return String(name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase(); }
+
+function isOpen(r) { return STATUS[r.status] && STATUS[r.status].group === 'open'; }
+function isBlocking(r) { return r.status === 'Booked' || r.status === 'Completed'; }
+function paymentsFor(id) { return S.data.payments.filter(p => p.recordId === id); }
+function paidFor(id) { return paymentsFor(id).reduce((t, p) => t + Number(p.amount || 0), 0); }
+function balanceFor(r) { return r.totalAmount === '' || r.totalAmount === undefined ? null : Number(r.totalAmount) - paidFor(r.id); }
+function byId(id) { return S.data.records.find(r => r.id === id); }
+function halls() { return S.data.halls.map(h => h.name); }
+function hallCap(name) { const h = S.data.halls.find(x => x.name === name); return h && Number(h.capacity) > 0 ? Number(h.capacity) : 0; }
+function pill(status) { return '<span class="pill ' + ((STATUS[status] || {}).cls || '') + '">' + esc(status) + '</span>'; }
+function dateTile(r) {
+  const g = STATUS[r.status] ? STATUS[r.status].group : '';
+  if (!r.eventDate) return '<div class="dt nodate ' + g + '"><b>?</b><span>date</span></div>';
+  return '<div class="dt ' + g + '"><b>' + fmt(r.eventDate, { day: 'numeric' }) + '</b><span>' + fmt(r.eventDate, { month: 'short' }) + '</span></div>';
+}
+function cleanPhone(p) { return String(p || '').replace(/[^\d+]/g, ''); }
+function waNumber(p) { let x = String(p || '').replace(/\D/g, ''); if (x.length === 10) x = '91' + x; return x; }
+function waLink(phone, text) { return 'https://wa.me/' + waNumber(phone) + (text ? '?text=' + encodeURIComponent(text) : ''); }
+function telLink(phone) { const x = waNumber(phone); return 'tel:+' + x; }
+
+/* =================================================================== toast & sheet */
+
+function toast(msg, o) {
+  o = o || {};
+  const root = $('#toast-root');
+  const action = o.href ? '<a href="' + esc(o.href) + '" target="_blank" rel="noopener">' + esc(o.action) + '</a>' : '';
+  root.innerHTML = '<div class="toast ' + (o.bad ? 'bad' : '') + '" role="status">' + icon(o.bad ? 'alert' : 'check') + '<span class="t-msg">' + esc(msg) + '</span>' + action + '</div>';
+  clearTimeout(root._t);
+  root._t = setTimeout(() => { root.innerHTML = ''; }, o.bad ? 7000 : (o.href ? 8000 : 3200));
+}
+function openSheet(html) {
+  const root = $('#sheet');
+  root.innerHTML = '<div class="backdrop" data-act="close-sheet"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>' + html + '</div>';
+  root.classList.add('open');
+  const f = root.querySelector('[autofocus]');
+  if (f) setTimeout(() => f.focus(), 60);
+}
+function closeSheet() { const root = $('#sheet'); root.classList.remove('open'); root.innerHTML = ''; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+
+function busy(btn, on, label) {
+  if (!btn) return;
+  if (on) { btn._html = btn.innerHTML; btn.classList.add('busy'); btn.innerHTML = icon('refresh', 'sm spin') + (label || 'Saving'); }
+  else if (btn._html !== undefined) { btn.classList.remove('busy'); btn.innerHTML = btn._html; }
+}
+async function mutate(fn, arg, btn) {
+  busy(btn, true);
+  try {
+    const res = await call(fn, arg);
+    await reload(true);
+    return res;
+  } catch (e) {
+    busy(btn, false);
+    toast(e.message, { bad: true });
+    throw e;
+  }
+}
+
+/* =================================================================== shell */
+
+const NAV = [
+  { view: 'home', label: 'Home', icon: 'home' },
+  { view: 'bookings', label: 'Bookings', icon: 'list' },
+  { view: 'calendar', label: 'Calendar', icon: 'calendar' },
+  { view: 'payments', label: 'Payments', icon: 'wallet' }
+];
+const TITLES = { home: 'Home', bookings: 'Bookings', calendar: 'Calendar', payments: 'Payments' };
+
+function navActive(view) {
+  const v = S.route.view;
+  if (v === 'detail' || (v === 'form' && S.route.id)) return view === 'bookings';
+  return v === view;
+}
+function renderShell() {
+  const nav = NAV.map(n => '<button class="side-link ' + (navActive(n.view) ? 'active' : '') + '" data-act="nav" data-view="' + n.view + '">' + icon(n.icon) + n.label + '</button>').join('');
+  $('#sidebar').innerHTML =
+    '<div class="brand"><div class="brand-mark">EB</div><div><b>' + BRAND + '</b><span>Banquets & catering</span></div></div>' +
+    '<button class="btn btn-primary side-new" data-act="new">' + icon('plus') + 'New enquiry</button>' + nav +
+    '<div class="side-foot">' + icon('user', 'sm') + ' ' + esc(S.data ? S.data.user : '') + '</div>';
+  const t = (n) => '<button class="tab ' + (navActive(n.view) ? 'active' : '') + '" data-act="nav" data-view="' + n.view + '" aria-label="' + n.label + '">' + icon(n.icon) + n.label + '</button>';
+  $('#tabbar').innerHTML = t(NAV[0]) + t(NAV[1]) +
+    '<button class="tab ' + (S.route.view === 'form' && !S.route.id ? 'active' : '') + '" data-act="new" aria-label="New enquiry"><span class="fab">' + icon('plus') + '</span></button>' +
+    t(NAV[2]) + t(NAV[3]);
+}
+function renderTopbar() {
+  const v = S.route.view;
+  let title = TITLES[v] || '';
+  let lead = '', trail = '';
+  if (v === 'detail') { const r = S.data && byId(S.route.id); title = r ? r.customerName : 'Record'; }
+  if (v === 'form') title = S.route.id ? 'Edit details' : 'New enquiry';
+  if (v === 'detail' || v === 'form') lead = '<button class="btn-icon" data-act="back" aria-label="Back">' + icon('left') + '</button>';
+  if (v === 'detail') trail = '<button class="btn-icon" data-act="edit" data-id="' + esc(S.route.id) + '" aria-label="Edit">' + icon('edit') + '</button>';
+  const syncTxt = S.syncing ? 'Syncing' : (S.lastLoad ? 'Updated ' + new Date(S.lastLoad).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : '');
+  if (v !== 'form') trail += '<span class="sync">' + syncTxt + '</span><button class="btn-icon" data-act="refresh" aria-label="Refresh">' + icon('refresh', S.syncing ? 'spin' : '') + '</button>';
+  $('#topbar').innerHTML = lead + '<h1>' + esc(title) + '</h1>' + trail;
+}
+window.addEventListener('scroll', () => $('#topbar').classList.toggle('scrolled', window.scrollY > 4), { passive: true });
 
 function render() {
   if (!S.data) return;
-  document.querySelectorAll('nav button').forEach(function (b) {
-    b.classList.toggle('active', b.dataset.tab === S.tab || (S.tab === 'edit' && b.dataset.tab === 'add') || (S.tab === 'detail' && b.dataset.tab === 'records'));
+  renderShell(); renderTopbar();
+  const v = $('#view');
+  const fn = { home: viewHome, bookings: viewBookings, form: viewForm, detail: viewDetail, calendar: viewCalendar, payments: viewPayments }[S.route.view] || viewHome;
+  v.innerHTML = demoBar() + fn();
+  if (S.route.view === 'form') afterFormRender();
+}
+function demoBar() {
+  if (!DEMO || S.route.view === 'form') return '';
+  return '<div class="demo">' + icon('spark', 'sm') + '<span>Demo mode. Data is saved only in this browser.</span>' +
+    (S.data.records.length ? '<button data-act="demo-reset">Clear demo data</button>' : '<button data-act="demo-seed">Load sample data</button>') + '</div>';
+}
+function showFatal(e) {
+  $('#view').innerHTML = '<div class="card empty" style="margin-top:20px"><div class="ic">' + icon('alert', 'lg') + '</div><b>Could not load data</b>' + esc(e.message) +
+    '<div><button class="btn btn-primary" data-act="refresh">' + icon('refresh') + 'Try again</button></div></div>';
+}
+function emptyState(ic, title, text, btn) {
+  return '<div class="empty"><div class="ic">' + icon(ic, 'lg') + '</div><b>' + esc(title) + '</b>' + esc(text || '') + (btn ? '<div>' + btn + '</div>' : '') + '</div>';
+}
+
+/* =================================================================== row renderers */
+
+function recordRow(r, endHtml) {
+  const meta = [r.hall, r.slot, r.guests ? r.guests + ' guests' : '', r.eventType].filter(Boolean).join(' · ') || cleanPhone(r.phone);
+  return '<button class="row" data-act="open" data-id="' + esc(r.id) + '">' + dateTile(r) +
+    '<div class="body"><div class="title">' + esc(r.customerName) + '</div><div class="meta">' + esc(meta) + '</div></div>' +
+    '<div class="end">' + (endHtml !== undefined ? endHtml : pill(r.status)) + '</div></button>';
+}
+function balanceTag(r) {
+  const b = balanceFor(r);
+  if (b === null) return '';
+  if (b <= 0) return '<span class="tag tag-ok">Paid</span>';
+  return '<span class="amt" style="color:var(--bad)">' + moneyShort(b) + ' due</span>';
+}
+
+/* =================================================================== home */
+
+function viewHome() {
+  const D = S.data, today = D.today, recs = D.records;
+  const hour = new Date().getHours();
+  const hello = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const open = recs.filter(isOpen);
+  const week = recs.filter(r => r.status === 'Booked' && r.eventDate >= today && r.eventDate <= addDays(today, 6));
+  const month = recs.filter(r => isBlocking(r) && String(r.eventDate).slice(0, 7) === today.slice(0, 7));
+  const due = recs.filter(isBlocking).reduce((t, r) => { const b = balanceFor(r); return t + (b > 0 ? b : 0); }, 0);
+
+  const kpi = (ic, cls, val, label, view) => '<button class="kpi" data-act="nav" data-view="' + view + '"><span class="ic ' + cls + '">' + icon(ic) + '</span><b>' + val + '</b><span>' + label + '</span></button>';
+
+  // needs attention
+  const items = [];
+  open.filter(r => r.followUpDate && r.followUpDate <= today).forEach(r => {
+    const n = diffDays(r.followUpDate);
+    items.push({ sort: n, html: recordRow(r, (n < 0 ? '<span class="tag tag-bad">' + (-n) + 'd overdue</span>' : '<span class="tag tag-warn">Call today</span>')), r, why: 'Follow up' });
   });
-  var v = document.getElementById('view');
-  ({ home: renderHome, add: renderForm, edit: renderForm, records: renderRecords, detail: renderDetail, availability: renderAvailability })[S.tab](v);
-}
-
-/* ------------------------------------------------------------------ helpers */
-
-function esc(s) {
-  return String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, function (c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  recs.filter(r => r.status === 'Booked' && r.eventDate >= today && r.eventDate <= addDays(today, 15) && balanceFor(r) > 0).forEach(r => {
+    items.push({ sort: diffDays(r.eventDate) + 0.5, html: recordRow(r, '<span class="amt" style="color:var(--bad)">' + moneyShort(balanceFor(r)) + '</span><span class="small muted">' + rel(r.eventDate) + '</span>') });
   });
-}
-function money(n) { return n === '' || n === undefined || n === null ? '-' : 'Rs ' + Number(n).toLocaleString('en-IN'); }
-function fmtDate(d) {
-  if (!d) return '-';
-  var p = d.split('-');
-  var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][Number(p[1]) - 1];
-  return Number(p[2]) + ' ' + m + ' ' + p[0];
-}
-function addDays(iso, n) { var d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
-function pillClass(s) { return s.split(' ')[0]; }
-function pill(s) { return '<span class="pill ' + esc(pillClass(s)) + '">' + esc(s) + '</span>'; }
-function opts(list, sel, blank) {
-  return (blank !== undefined ? '<option value="">' + esc(blank) + '</option>' : '') +
-    list.map(function (o) { return '<option' + (o === sel ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('');
-}
-function isBlocking(r) { return S.data.lists.blockingStatuses.indexOf(r.status) !== -1; }
-function isOpen(r) { return S.data.lists.openStatuses.indexOf(r.status) !== -1; }
-function paymentsFor(id) { return S.data.payments.filter(function (p) { return p.recordId === id; }); }
-function paidFor(id) { return paymentsFor(id).reduce(function (t, p) { return t + Number(p.amount || 0); }, 0); }
-function balanceFor(r) { return r.totalAmount === '' ? '' : Number(r.totalAmount) - paidFor(r.id); }
-function byId(id) { return S.data.records.filter(function (r) { return r.id === id; })[0]; }
+  recs.filter(r => r.status === 'Booked' && r.eventDate && r.eventDate < today).forEach(r => {
+    items.push({ sort: 100, html: recordRow(r, '<span class="tag tag-warn">Mark done?</span>') });
+  });
+  items.sort((a, b) => a.sort - b.sort);
 
-function toast(msg, kind) {
-  var t = document.getElementById('toast');
-  t.className = 'notice ' + (kind || 'ok');
-  t.textContent = msg;
-  t.style.display = 'block';
-  clearTimeout(t._h);
-  t._h = setTimeout(function () { t.style.display = 'none'; }, kind === 'bad' ? 7000 : 3000);
-}
-function showError(e) { toast(e.message || String(e), 'bad'); }
+  // agenda
+  const upcoming = recs.filter(r => isBlocking(r) && r.eventDate >= today && r.eventDate <= addDays(today, 14))
+    .sort((a, b) => (a.eventDate + a.slot).localeCompare(b.eventDate + b.slot));
+  const byDate = {};
+  upcoming.forEach(r => { (byDate[r.eventDate] = byDate[r.eventDate] || []).push(r); });
+  const agenda = Object.keys(byDate).map(dt =>
+    '<div class="group-h"><span>' + fmtMed(dt) + '</span><span>' + rel(dt) + '</span></div><div class="card list">' +
+    byDate[dt].map(r => recordRow(r, balanceTag(r) || pill(r.status))).join('') + '</div>').join('');
 
-function recordCard(r, extra) {
-  return '<div class="card tap" onclick="go(\'detail\',\'' + esc(r.id) + '\')">' +
-    '<div class="row"><b>' + esc(r.customerName) + '</b>' + pill(r.status) + '</div>' +
-    '<div class="muted">' + esc([r.eventType, r.hall, r.slot].filter(Boolean).join(' | ')) + '</div>' +
-    '<div class="row muted"><span>' + fmtDate(r.eventDate) + (r.guests ? ' | ' + esc(r.guests) + ' guests' : '') + '</span><span>' + esc(r.id) + '</span></div>' +
-    (extra || '') + '</div>';
-}
+  const showAll = S.ui.attnAll;
+  const attnHtml = items.length
+    ? '<div class="card list">' + items.slice(0, showAll ? 99 : 5).map(i => i.html).join('') + '</div>' +
+      (items.length > 5 ? '<div style="text-align:center;margin-top:6px"><button class="link" data-act="attn-toggle">' + (showAll ? 'Show less' : 'Show all ' + items.length) + '</button></div>' : '')
+    : '<div class="card">' + emptyState('check', 'All caught up', 'No follow-ups or payments need attention.') + '</div>';
 
-/* ------------------------------------------------------------------ home */
-
-function renderHome(v) {
-  var d = S.data, today = d.today, week = addDays(today, 7), month = today.slice(0, 7);
-  var open = d.records.filter(isOpen);
-  var due = open.filter(function (r) { return r.followUpDate && r.followUpDate <= today; })
-    .sort(function (a, b) { return a.followUpDate < b.followUpDate ? -1 : 1; });
-  var upcoming = d.records.filter(function (r) { return r.status === 'Booked' && r.eventDate >= today && r.eventDate <= addDays(today, 14); })
-    .sort(function (a, b) { return a.eventDate < b.eventDate ? -1 : 1; });
-  var bookedThisMonth = d.records.filter(function (r) { return isBlocking(r) && String(r.eventDate).slice(0, 7) === month; }).length;
-  var pending = d.records.filter(function (r) { return r.status === 'Booked'; })
-    .reduce(function (t, r) { var b = balanceFor(r); return t + (b > 0 ? b : 0); }, 0);
-
-  v.innerHTML = '<h2>Today, ' + fmtDate(today) + '</h2>' +
-    '<div class="stats">' +
-      '<div class="stat"><b>' + open.length + '</b><span>Open enquiries</span></div>' +
-      '<div class="stat"><b>' + upcoming.filter(function (r) { return r.eventDate <= week; }).length + '</b><span>Events next 7 days</span></div>' +
-      '<div class="stat"><b>' + bookedThisMonth + '</b><span>Events booked this month</span></div>' +
-      '<div class="stat"><b>' + money(pending) + '</b><span>Balance to collect</span></div>' +
+  return '<div class="hello"><h2>' + hello + '</h2><p>' + fmtLong(today) + '</p></div>' +
+    '<div class="kpis">' +
+      kpi('inbox', 'ic-warn', open.length, 'Open enquiries', 'bookings') +
+      kpi('party', 'ic-ok', week.length, 'Events this week', 'calendar') +
+      kpi('calendar', 'ic-info', month.length, 'Events this month', 'calendar') +
+      kpi('rupee', 'ic-brand', moneyShort(due), 'Balance to collect', 'payments') +
     '</div>' +
-    '<h3>Follow-ups due (' + due.length + ')</h3>' +
-    (due.length ? due.map(function (r) { return recordCard(r, '<div class="muted">Follow up by ' + fmtDate(r.followUpDate) + '</div>'); }).join('') : '<div class="empty">No follow-ups due.</div>') +
-    '<h3>Upcoming events, next 14 days (' + upcoming.length + ')</h3>' +
-    (upcoming.length ? upcoming.map(function (r) {
-      var b = balanceFor(r);
-      return recordCard(r, b > 0 ? '<div class="muted" style="color:var(--bad)">Balance due ' + money(b) + '</div>' : '');
-    }).join('') : '<div class="empty">No events in the next 14 days.</div>');
+    '<div class="grid-2" style="margin-top:24px"><div class="section" style="margin-top:0"><div class="section-h"><h2>Needs attention <span class="count">' + items.length + '</span></h2></div>' + attnHtml + '</div>' +
+    '<div class="section" style="margin-top:0"><div class="section-h"><h2>Coming up</h2><span class="muted small">Next 14 days</span></div>' +
+      (agenda || '<div class="card">' + emptyState('calendar', 'No events in the next 14 days', '', '<button class="btn btn-soft btn-sm" data-act="nav" data-view="calendar">Open calendar</button>') + '</div>') +
+    '</div></div>';
 }
 
-/* ------------------------------------------------------------------ add / edit form */
+/* =================================================================== bookings */
 
-function renderForm(v) {
-  var d = S.data, L = d.lists;
-  var r = S.tab === 'edit' ? byId(S.arg) : { status: 'Enquiry', eventType: 'Shaadi', source: 'Word of mouth', followUpDate: addDays(d.today, 3) };
-  if (!r) return go('records');
-  var halls = d.halls.map(function (h) { return h.name; });
-  if (r.hall && halls.indexOf(r.hall) === -1) halls.push(r.hall);
-
-  v.innerHTML = '<h2>' + (r.id ? 'Edit ' + esc(r.id) : 'New enquiry or booking') + '</h2>' +
-    '<form id="f" class="card" onsubmit="return saveForm(event)">' +
-      '<label>Status</label><select name="status" onchange="formChanged()">' + opts(L.statuses, r.status) + '</select>' +
-      '<label>Customer name *</label><input name="customerName" required value="' + esc(r.customerName) + '">' +
-      '<label>Phone *</label><input name="phone" type="tel" inputmode="numeric" required placeholder="10 digit mobile" value="' + esc(r.phone) + '">' +
-      '<label>Address</label><input name="address" value="' + esc(r.address) + '">' +
-      '<div class="grid2">' +
-        '<div><label>Event type</label><select name="eventType">' + opts(L.eventTypes, r.eventType, '-') + '</select></div>' +
-        '<div><label>Source</label><select name="source">' + opts(L.sources, r.source, '-') + '</select></div>' +
-        '<div><label>Event date</label><input name="eventDate" type="date" value="' + esc(r.eventDate) + '" onchange="formChanged()"></div>' +
-        '<div><label>Slot</label><select name="slot" onchange="formChanged()">' + opts(L.slots, r.slot, '-') + '</select></div>' +
-      '</div>' +
-      '<label>Hall</label><select name="hall" onchange="formChanged()">' + opts(halls, r.hall, '-') + '</select>' +
-      '<div id="availMsg"></div>' +
-      '<div class="grid2">' +
-        '<div><label>Guests</label><input name="guests" type="number" min="0" inputmode="numeric" value="' + esc(r.guests) + '" oninput="calcTotal()"></div>' +
-        '<div><label>Rate per plate (Rs)</label><input name="ratePerPlate" type="number" min="0" inputmode="numeric" value="' + esc(r.ratePerPlate) + '" oninput="calcTotal()"></div>' +
-      '</div>' +
-      '<label>Total amount (Rs)</label><input name="totalAmount" type="number" min="0" inputmode="numeric" value="' + esc(r.totalAmount) + '">' +
-      '<div id="followWrap"><label>Next follow-up</label><input name="followUpDate" type="date" value="' + esc(r.followUpDate) + '"></div>' +
-      '<div id="lostWrap"><label>Why was the customer lost? *</label><input name="lostReason" placeholder="Price, date not free, chose another venue..." value="' + esc(r.lostReason) + '"></div>' +
-      '<label>Notes</label><textarea name="notes" placeholder="Menu ideas, special requests, tasting date...">' + esc(r.notes) + '</textarea>' +
-      '<button class="btn block" id="saveBtn">' + (r.id ? 'Save changes' : 'Save') + '</button>' +
-      (r.id ? '<button type="button" class="btn secondary block" onclick="go(\'detail\',\'' + esc(r.id) + '\')">Cancel</button>' : '') +
-    '</form>';
-  formChanged();
+const BK_TABS = [
+  { key: 'active', label: 'Active', test: (r, t) => isOpen(r) || (r.status === 'Booked' && (!r.eventDate || r.eventDate >= t) ) },
+  { key: 'enquiries', label: 'Enquiries', test: r => isOpen(r) },
+  { key: 'booked', label: 'Booked', test: r => r.status === 'Booked' },
+  { key: 'done', label: 'Completed', test: r => r.status === 'Completed' },
+  { key: 'closed', label: 'Lost & cancelled', test: r => r.status === 'Lost' || r.status === 'Cancelled' },
+  { key: 'all', label: 'All', test: () => true }
+];
+function viewBookings() {
+  const U = S.ui;
+  const hallOpts = '<option value="">All halls</option>' + halls().map(h => '<option' + (h === U.hall ? ' selected' : '') + '>' + esc(h) + '</option>').join('');
+  return '<div class="toolbar"><label class="search">' + icon('search') + '<input class="input" id="bk-q" type="search" placeholder="Search name, phone, ID" value="' + esc(U.q) + '" autocomplete="off"></label>' +
+    '<select class="input" id="bk-hall" aria-label="Filter by hall">' + hallOpts + '</select></div>' +
+    '<div class="chips scroll" id="bk-tabs">' + bkTabs() + '</div>' +
+    '<div id="bk-list">' + bkList() + '</div>';
 }
-
-function formVals() {
-  var f = document.getElementById('f'), o = {};
-  Array.prototype.forEach.call(f.elements, function (el) { if (el.name) o[el.name] = el.value.trim(); });
-  return o;
+function bkBase() {
+  const U = S.ui, q = U.q.trim().toLowerCase();
+  return S.data.records.filter(r => (!U.hall || r.hall === U.hall) &&
+    (!q || (r.customerName + ' ' + r.phone + ' ' + r.id + ' ' + r.hall).toLowerCase().indexOf(q) !== -1));
 }
-
-function calcTotal() {
-  var f = document.getElementById('f');
-  var g = Number(f.guests.value), rate = Number(f.ratePerPlate.value);
-  if (g && rate) f.totalAmount.value = g * rate;
+function bkTabs() {
+  const base = bkBase(), t = S.data.today;
+  return BK_TABS.map(x => '<button class="chip ' + (S.ui.bkTab === x.key ? 'on' : '') + '" data-act="bk-tab" data-key="' + x.key + '">' + x.label + ' <span class="n">' + base.filter(r => x.test(r, t)).length + '</span></button>').join('');
 }
-
-function formChanged() {
-  var o = formVals(), L = S.data.lists;
-  document.getElementById('lostWrap').hidden = o.status !== 'Lost';
-  document.getElementById('followWrap').hidden = L.openStatuses.indexOf(o.status) === -1;
-  var box = document.getElementById('availMsg');
-  if (!o.hall || !o.eventDate || !o.slot) { box.innerHTML = ''; return; }
-  var selfId = S.tab === 'edit' ? S.arg : '';
-  var same = S.data.records.filter(function (r) { return r.id !== selfId && r.hall === o.hall && r.eventDate === o.eventDate && r.slot === o.slot; });
-  var taken = same.filter(isBlocking)[0];
-  var interest = same.filter(isOpen);
-  if (taken) box.innerHTML = '<div class="notice bad">Not available: booked for ' + esc(taken.customerName) + ' (' + esc(taken.id) + ').</div>';
-  else box.innerHTML = '<div class="notice ok">' + esc(o.hall) + ' is free on ' + fmtDate(o.eventDate) + ' (' + esc(o.slot) + ').' +
-    (interest.length ? ' ' + interest.length + ' other open enquir' + (interest.length > 1 ? 'ies' : 'y') + ' for this slot.' : '') + '</div>';
-}
-
-function saveForm(e) {
-  e.preventDefault();
-  var o = formVals();
-  if (S.tab === 'edit') { var cur = byId(S.arg); o.id = cur.id; o.updatedAt = cur.updatedAt; }
-  var btn = document.getElementById('saveBtn');
-  btn.disabled = true; btn.textContent = 'Saving...';
-  call('apiSaveRecord', o).then(function (saved) {
-    toast('Saved ' + saved.id);
-    return reload().then(function () { go('detail', saved.id); });
-  }).catch(function (err) {
-    btn.disabled = false; btn.textContent = 'Save';
-    showError(err);
+function bkList() {
+  const t = S.data.today, tab = BK_TABS.find(x => x.key === S.ui.bkTab) || BK_TABS[0];
+  const desc = tab.key === 'done' || tab.key === 'closed' || tab.key === 'all';
+  const list = bkBase().filter(r => tab.test(r, t)).sort((a, b) => {
+    const x = (a.eventDate || (desc ? '0000' : '9999')) + a.slot, y = (b.eventDate || (desc ? '0000' : '9999')) + b.slot;
+    return desc ? y.localeCompare(x) : x.localeCompare(y);
   });
-  return false;
-}
-
-/* ------------------------------------------------------------------ records list */
-
-function renderRecords(v) {
-  var d = S.data, F = S.filters;
-  var statusChoices = ['Active', 'All'].concat(d.lists.statuses);
-  v.innerHTML = '<h2>Records</h2>' +
-    '<div class="filters">' +
-      '<input id="q" placeholder="Search name, phone or ID" value="' + esc(F.q) + '" oninput="S.filters.q=this.value;drawList()">' +
-      '<select onchange="S.filters.status=this.value;drawList()">' + opts(statusChoices, F.status) + '</select>' +
-      '<select onchange="S.filters.hall=this.value;drawList()">' + opts(d.halls.map(function (h) { return h.name; }), F.hall, 'All halls') + '</select>' +
-    '</div><div id="list"></div>';
-  drawList();
-}
-
-function drawList() {
-  var F = S.filters, q = F.q.toLowerCase();
-  var list = S.data.records.filter(function (r) {
-    if (F.status === 'Active' && !(isOpen(r) || r.status === 'Booked')) return false;
-    if (F.status !== 'Active' && F.status !== 'All' && r.status !== F.status) return false;
-    if (F.hall && r.hall !== F.hall) return false;
-    if (q && (r.customerName + ' ' + r.phone + ' ' + r.id).toLowerCase().indexOf(q) === -1) return false;
-    return true;
-  }).sort(function (a, b) { return (a.eventDate || '9999') < (b.eventDate || '9999') ? -1 : 1; });
-  document.getElementById('list').innerHTML = '<div class="muted" style="margin-bottom:8px">' + list.length + ' record(s)</div>' +
-    (list.length ? list.map(function (r) { return recordCard(r); }).join('') : '<div class="empty">Nothing found.</div>');
-}
-
-/* ------------------------------------------------------------------ record detail + payments */
-
-function renderDetail(v) {
-  var r = byId(S.arg);
-  if (!r) return go('records');
-  var pays = paymentsFor(r.id), paid = paidFor(r.id), bal = balanceFor(r);
-  var rows = [
-    ['Phone', esc(r.phone)], ['Address', esc(r.address)], ['Event', esc(r.eventType)],
-    ['Date', fmtDate(r.eventDate) + (r.slot ? ' (' + esc(r.slot) + ')' : '')], ['Hall', esc(r.hall)],
-    ['Guests', esc(r.guests)], ['Rate per plate', money(r.ratePerPlate)], ['Total', money(r.totalAmount)],
-    ['Paid', money(paid)], ['Balance', money(bal)], ['Source', esc(r.source)]
-  ];
-  if (isOpen(r)) rows.push(['Next follow-up', fmtDate(r.followUpDate)]);
-  if (r.lostReason) rows.push(['Lost reason', esc(r.lostReason)]);
-  if (r.notes) rows.push(['Notes', esc(r.notes).replace(/\n/g, '<br>')]);
-
-  v.innerHTML =
-    '<div class="row"><h2>' + esc(r.customerName) + '</h2>' + pill(r.status) + '</div>' +
-    '<div class="muted">' + esc(r.id) + ' | added by ' + esc(r.createdBy) + ' | last change by ' + esc(r.updatedBy) + '</div>' +
-    '<div class="card" style="margin-top:10px"><table>' + rows.map(function (x) { return '<tr><th>' + x[0] + '</th><td>' + (x[1] || '-') + '</td></tr>'; }).join('') + '</table>' +
-      '<div class="actions"><button class="btn secondary" onclick="go(\'edit\',\'' + esc(r.id) + '\')">Edit</button></div></div>' +
-    '<h3>Send on WhatsApp</h3><div class="actions">' + waButtons(r, paid, bal) + '</div>' +
-    '<h3>Payments (' + pays.length + ')</h3>' +
-    (pays.length ? '<div class="card"><table><tr><th>Date</th><th>Amount</th><th>Mode</th><th>Ref</th></tr>' + pays.map(function (p) {
-      return '<tr><td>' + fmtDate(p.date) + '</td><td>' + money(p.amount) + '</td><td>' + esc(p.mode) + '</td><td>' + esc(p.reference) + '</td></tr>';
-    }).join('') + '</table></div>' : '<div class="empty">No payments yet.</div>') +
-    '<form id="pf" class="card" onsubmit="return savePayment(event)">' +
-      '<b>Record a payment</b>' +
-      '<div class="grid2">' +
-        '<div><label>Amount (Rs) *</label><input name="amount" type="number" min="1" inputmode="numeric" required></div>' +
-        '<div><label>Mode *</label><select name="mode" required>' + opts(S.data.lists.paymentModes, '', '-') + '</select></div>' +
-        '<div><label>Date</label><input name="date" type="date" value="' + S.data.today + '"></div>' +
-        '<div><label>Reference / UPI ID</label><input name="reference"></div>' +
-      '</div>' +
-      '<button class="btn block" id="payBtn">Save payment</button>' +
-    '</form>';
-}
-
-function waLink(phone, text) {
-  var p = String(phone).replace(/\D/g, '');
-  if (p.length === 10) p = '91' + p;
-  return 'https://wa.me/' + p + '?text=' + encodeURIComponent(text);
-}
-
-function waButtons(r, paid, bal) {
-  var when = fmtDate(r.eventDate) + (r.slot ? ' (' + r.slot + ')' : '');
-  var msgs = [];
-  if (isOpen(r)) msgs.push(['Thank you for enquiry',
-    'Namaste ' + r.customerName + ' ji,\nThank you for your enquiry' + (r.eventType ? ' for your ' + r.eventType : '') +
-    (r.hall ? ' at ' + r.hall : '') + '. We would be happy to host you. Please let us know a convenient time to visit the hall and for food tasting.']);
-  if (isBlocking(r)) msgs.push(['Booking confirmation',
-    'Namaste ' + r.customerName + ' ji,\nYour booking is confirmed.\nBooking ID: ' + r.id + '\nEvent: ' + (r.eventType || '-') +
-    '\nHall: ' + r.hall + '\nDate: ' + when + '\nGuests: ' + r.guests + '\nTotal: ' + money(r.totalAmount) +
-    '\nPaid: ' + money(paid) + '\nBalance: ' + money(bal) + '\nThank you!']);
-  if (paid > 0) msgs.push(['Payment receipt',
-    'Namaste ' + r.customerName + ' ji,\nWe have received ' + money(paid) + ' in total for booking ' + r.id + ' (' + when + ').' +
-    (bal !== '' ? '\nBalance remaining: ' + money(bal) : '') + '\nThank you!']);
-  if (r.status === 'Booked' && bal > 0) msgs.push(['Balance reminder',
-    'Namaste ' + r.customerName + ' ji,\nA gentle reminder that ' + money(bal) + ' is pending for your event on ' + when + ' at ' + r.hall + '. Thank you!']);
-  if (r.status === 'Completed') msgs.push(['Thank you after event',
-    'Namaste ' + r.customerName + ' ji,\nThank you for celebrating with us at ' + r.hall + '. We hope you and your guests enjoyed it. A short review on Google would mean a lot to us!']);
-  return msgs.map(function (m) { return '<a class="btn wa" target="_blank" rel="noopener" href="' + esc(waLink(r.phone, m[1])) + '">' + esc(m[0]) + '</a>'; }).join('') ||
-    '<span class="muted">No messages for this status.</span>';
-}
-
-function savePayment(e) {
-  e.preventDefault();
-  var f = document.getElementById('pf');
-  var p = { recordId: S.arg, amount: f.amount.value, mode: f.mode.value, date: f.date.value, reference: f.reference.value.trim() };
-  var btn = document.getElementById('payBtn');
-  btn.disabled = true; btn.textContent = 'Saving...';
-  call('apiAddPayment', p).then(function () {
-    toast('Payment saved');
-    return reload();
-  }).catch(function (err) {
-    btn.disabled = false; btn.textContent = 'Save payment';
-    showError(err);
-  });
-  return false;
-}
-
-/* ------------------------------------------------------------------ availability */
-
-function slotCell(hall, date, slot) {
-  var same = S.data.records.filter(function (r) { return r.hall === hall && r.eventDate === date && r.slot === slot; });
-  var taken = same.filter(isBlocking)[0];
-  if (taken) return '<span class="slot taken tap" onclick="go(\'detail\',\'' + esc(taken.id) + '\')">' + esc(slot) + ': ' + esc(taken.customerName) + '</span>';
-  var interest = same.filter(isOpen).length;
-  if (interest) return '<span class="slot interest">' + esc(slot) + ': free, ' + interest + ' enq.</span>';
-  return '<span class="slot free">' + esc(slot) + ': free</span>';
-}
-
-function renderAvailability(v) {
-  var A = S.avail, d = S.data;
-  if (!A.hall && d.halls.length) A.hall = d.halls[0].name;
-  var html = '<h2>Availability</h2><div class="seg">' +
-    '<button class="btn ' + (A.mode === 'date' ? '' : 'secondary') + '" onclick="S.avail.mode=\'date\';render()">One date, all halls</button>' +
-    '<button class="btn ' + (A.mode === 'month' ? '' : 'secondary') + '" onclick="S.avail.mode=\'month\';render()">One hall, full month</button></div>';
-  if (A.mode === 'date') {
-    html += '<input type="date" value="' + esc(A.date) + '" onchange="S.avail.date=this.value;render()">' +
-      '<div class="card" style="margin-top:10px"><table><tr><th>Hall</th><th>Slots on ' + fmtDate(A.date) + '</th></tr>' +
-      d.halls.map(function (h) {
-        return '<tr><td>' + esc(h.name) + '</td><td>' + d.lists.slots.map(function (s) { return slotCell(h.name, A.date, s); }).join('<br>') + '</td></tr>';
-      }).join('') + '</table></div>';
-  } else {
-    var parts = A.month.split('-'), days = new Date(Date.UTC(Number(parts[0]), Number(parts[1]), 0)).getUTCDate();
-    var rows = '';
-    for (var i = 1; i <= days; i++) {
-      var date = A.month + '-' + ('0' + i).slice(-2);
-      var dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(date + 'T00:00:00Z').getUTCDay()];
-      rows += '<tr><td>' + i + ' ' + dow + '</td><td>' + d.lists.slots.map(function (s) { return slotCell(A.hall, date, s); }).join(' ') + '</td></tr>';
-    }
-    html += '<div class="grid2"><select onchange="S.avail.hall=this.value;render()">' + opts(d.halls.map(function (h) { return h.name; }), A.hall) + '</select>' +
-      '<input type="month" value="' + esc(A.month) + '" onchange="S.avail.month=this.value||S.avail.month;render()"></div>' +
-      '<div class="card" style="margin-top:10px"><table>' + rows + '</table></div>';
+  if (!list.length) {
+    return '<div class="card" style="margin-top:12px">' + emptyState('inbox', S.ui.q ? 'No matches' : 'Nothing here yet', S.ui.q ? 'Try a different name or number.' : 'New enquiries and bookings will appear here.',
+      '<button class="btn btn-primary btn-sm" data-act="new">' + icon('plus', 'sm') + 'New enquiry</button>') + '</div>';
   }
-  v.innerHTML = html;
+  const groups = {};
+  list.forEach(r => { const k = r.eventDate ? r.eventDate.slice(0, 7) : 'none'; (groups[k] = groups[k] || []).push(r); });
+  const keys = Object.keys(groups);
+  return keys.map(k => '<div class="group-h"><span>' + (k === 'none' ? 'Date not set' : monthLabel(k)) + '</span><span>' + groups[k].length + '</span></div>' +
+    '<div class="card list">' + groups[k].map(r => {
+      let end = pill(r.status);
+      if (r.status === 'Booked') { const b = balanceTag(r); if (b) end += b; }
+      else if (isOpen(r) && r.followUpDate && r.followUpDate <= t) end += '<span class="tag tag-warn">Follow up</span>';
+      return recordRow(r, end);
+    }).join('') + '</div>').join('');
 }
 
-/* ------------------------------------------------------------------ demo mode (opened outside Google) */
+/* =================================================================== form */
 
-var DemoServer = (function () {
-  var KEY = 'eventbusiness-demo-v1';
-  var LISTS = {
+function startForm() {
+  const D = S.data, id = S.route.id;
+  S.errors = {};
+  if (id) {
+    const r = byId(id);
+    if (!r) { S.form = null; return; }
+    S.form = {};
+    RECORD_KEYS.forEach(k => { S.form[k] = r[k] === undefined || r[k] === null ? '' : String(r[k]); });
+    S.form.id = r.id; S.form.updatedAt = r.updatedAt;
+    S.form._totalTouched = r.totalAmount !== '' && Number(r.totalAmount) !== Number(r.guests) * Number(r.ratePerPlate);
+  } else {
+    S.form = { status: 'Enquiry', customerName: '', phone: '', address: '', eventType: 'Shaadi', eventDate: '', slot: '', hall: '', guests: '',
+      source: 'Word of mouth', ratePerPlate: '', totalAmount: '', followUpDate: addDays(D.today, 3), lostReason: '', notes: '', _totalTouched: false };
+  }
+  if (S.prefill) { Object.assign(S.form, S.prefill); S.prefill = null; }
+  if (S.form.phone) S.form.phone = String(S.form.phone).replace(/^\+?91(?=\d{10}$)/, '');
+}
+
+function chipGroup(field, options, labels) {
+  return options.map((o, i) => '<button type="button" class="chip ' + (S.form[field] === o ? 'on' : '') + '" data-act="set" data-field="' + field + '" data-value="' + esc(o) + '">' + esc(labels ? labels[i] : o) + '</button>').join('');
+}
+function fieldErr(k) { return '<div class="err" id="err-' + k + '">' + esc(S.errors[k] || '') + '</div>'; }
+
+function viewForm() {
+  if (!S.form) return '<div class="card">' + emptyState('alert', 'Record not found', 'It may have been removed. Please refresh.') + '</div>';
+  const F = S.form, L = S.data.lists, editing = !!F.id;
+  const statuses = editing ? L.statuses : ['Enquiry', 'Visit Scheduled', 'Tasting Scheduled', 'Booked'];
+  const inp = (k, attrs) => '<input class="input" data-field="' + k + '" value="' + esc(F[k]) + '" ' + (attrs || '') + '>';
+  return '<div class="form-wrap"><div class="card">' +
+    '<div class="form-sec"><h3>' + icon('spark', 'sm') + 'Stage</h3><div class="chips" id="cg-status" style="margin-top:10px">' + chipGroup('status', statuses) + '</div><div id="f-stage-extra"></div></div>' +
+
+    '<div class="form-sec"><h3>' + icon('user', 'sm') + 'Customer</h3>' +
+      '<div class="field" id="fld-customerName"><label for="f-name">Name <span class="req">*</span></label>' + inp('customerName', 'id="f-name" autocomplete="off" placeholder="e.g. Ramesh Sharma"' + (editing ? '' : ' autofocus')) + fieldErr('customerName') + '</div>' +
+      '<div class="field" id="fld-phone"><label for="f-phone">Mobile number <span class="req">*</span></label><div class="input-wrap"><span class="pre">+91</span>' + inp('phone', 'id="f-phone" type="tel" inputmode="numeric" maxlength="14" placeholder="10 digit number"') + '</div>' + fieldErr('phone') + '</div>' +
+      '<div class="field"><label for="f-addr">Address</label>' + inp('address', 'id="f-addr" placeholder="Area / city"') + '</div>' +
+      '<div class="field"><span class="lbl">How did they hear about us?</span><div class="chips" id="cg-source">' + chipGroup('source', L.sources) + '</div></div>' +
+    '</div>' +
+
+    '<div class="form-sec"><h3>' + icon('party', 'sm') + 'Event</h3>' +
+      '<div class="field"><span class="lbl">Occasion</span><div class="chips" id="cg-eventType">' + chipGroup('eventType', L.eventTypes) + '</div></div>' +
+      '<div class="two"><div class="field" id="fld-eventDate"><label for="f-date">Date</label>' + inp('eventDate', 'id="f-date" type="date"') + fieldErr('eventDate') + '</div>' +
+      '<div class="field" id="fld-guests"><label for="f-guests">Guests</label>' + inp('guests', 'id="f-guests" type="number" min="0" inputmode="numeric" placeholder="0"') + fieldErr('guests') + '</div></div>' +
+      '<div class="field" id="fld-slot"><span class="lbl">Slot</span><div class="seg" id="cg-slot">' + segSlot() + '</div>' + fieldErr('slot') + '</div>' +
+    '</div>' +
+
+    '<div class="form-sec" id="fld-hall"><h3>' + icon('pin', 'sm') + 'Venue</h3><div class="hint" id="hall-hint"></div><div class="hall-grid" id="hall-grid" style="margin-top:10px"></div>' + fieldErr('hall') + '</div>' +
+
+    '<div class="form-sec"><h3>' + icon('rupee', 'sm') + 'Pricing</h3>' +
+      '<div class="two"><div class="field"><label for="f-rate">Rate per plate</label><div class="input-wrap"><span class="pre">₹</span>' + inp('ratePerPlate', 'id="f-rate" type="number" min="0" inputmode="numeric" placeholder="0"') + '</div></div>' +
+      '<div class="field"><label for="f-total">Total amount</label><div class="input-wrap"><span class="pre">₹</span>' + inp('totalAmount', 'id="f-total" type="number" min="0" inputmode="numeric" placeholder="0"') + '</div></div></div>' +
+      '<div id="calc"></div>' +
+    '</div>' +
+
+    '<div class="form-sec"><h3>' + icon('note', 'sm') + 'Notes</h3><div class="field"><textarea class="input" data-field="notes" placeholder="Menu ideas, tasting date, special requests...">' + esc(F.notes) + '</textarea></div></div>' +
+    '</div>' +
+    '<div class="savebar"><button class="btn btn-secondary" data-act="back">Cancel</button><button class="btn btn-primary" data-act="save" id="save-btn"></button></div></div>';
+}
+function segSlot() {
+  return S.data.lists.slots.map(s => '<button type="button" class="' + (S.form.slot === s ? 'on' : '') + '" data-act="set" data-field="slot" data-value="' + s + '">' + icon(s === 'Morning' ? 'sun' : 'moon', 'sm') + s + '</button>').join('');
+}
+function afterFormRender() {
+  if (!S.form) return;
+  refreshForm();
+  const f = $('#view [autofocus]');
+  if (f && window.innerWidth >= 700) f.focus();
+}
+function refreshForm(which) {
+  const F = S.form;
+  if (!which || which === 'status') {
+    $('#cg-status').innerHTML = chipGroup('status', S.form.id ? S.data.lists.statuses : ['Enquiry', 'Visit Scheduled', 'Tasting Scheduled', 'Booked']);
+    let extra = '';
+    if (isOpen(F)) {
+      const opts = [[1, 'Tomorrow'], [3, 'In 3 days'], [7, 'In a week']];
+      extra = '<div class="field"><label for="f-fu">Next follow-up call</label><input class="input" id="f-fu" type="date" data-field="followUpDate" value="' + esc(F.followUpDate) + '">' +
+        '<div class="chips" style="margin-top:8px">' + opts.map(o => '<button type="button" class="chip ' + (F.followUpDate === addDays(S.data.today, o[0]) ? 'on' : '') + '" data-act="fu" data-days="' + o[0] + '">' + o[1] + '</button>').join('') + '</div></div>';
+    } else if (F.status === 'Lost') {
+      extra = '<div class="field" id="fld-lostReason"><label for="f-lost">Why was the customer lost? <span class="req">*</span></label>' +
+        '<div class="chips" style="margin-bottom:8px">' + LOST_REASONS.map(x => '<button type="button" class="chip ' + (F.lostReason === x ? 'on' : '') + '" data-act="set" data-field="lostReason" data-value="' + esc(x) + '">' + esc(x) + '</button>').join('') + '</div>' +
+        '<input class="input" id="f-lost" data-field="lostReason" value="' + esc(F.lostReason) + '" placeholder="Or type a reason">' + fieldErr('lostReason') + '</div>';
+    } else if (F.status === 'Booked') {
+      extra = '<div class="hint">A booking needs a date, slot, hall and guest count. The slot will be blocked for others.</div>';
+    }
+    $('#f-stage-extra').innerHTML = extra;
+    const btn = $('#save-btn');
+    if (btn) btn.innerHTML = icon('check') + (F.status === 'Booked' ? 'Save booking' : F.id ? 'Save changes' : 'Save enquiry');
+  }
+  if (!which || which === 'slot') $('#cg-slot').innerHTML = segSlot();
+  ['source', 'eventType'].forEach(k => { if (!which || which === k) $('#cg-' + k).innerHTML = chipGroup(k, S.data.lists[k === 'source' ? 'sources' : 'eventTypes']); });
+  if (!which || ['hall', 'eventDate', 'slot', 'guests', 'status'].indexOf(which) !== -1) renderHalls();
+  if (!which || ['guests', 'ratePerPlate', 'totalAmount'].indexOf(which) !== -1) renderCalc();
+}
+function renderHalls() {
+  const F = S.form, ready = F.eventDate && F.slot;
+  $('#hall-hint').textContent = ready ? 'Availability for ' + fmtMed(F.eventDate) + ', ' + F.slot.toLowerCase() : 'Pick a date and slot to see which halls are free.';
+  const list = halls();
+  if (F.hall && list.indexOf(F.hall) === -1) list.push(F.hall);
+  $('#hall-grid').innerHTML = list.map(h => {
+    let cls = '', note = ready ? 'Free' : '';
+    if (ready) {
+      const s = slotInfo(h, F.eventDate, F.slot, F.id);
+      if (s.booked) { cls = 'taken'; note = 'Booked · ' + s.booked.customerName; }
+      else if (s.interest.length) { cls = 'interest'; note = 'Free · ' + s.interest.length + ' enquir' + (s.interest.length > 1 ? 'ies' : 'y'); }
+      else cls = 'free';
+    }
+    const cap = hallCap(h);
+    if (cap && Number(F.guests) > cap) note += (note ? ' · ' : '') + 'max ' + cap;
+    return '<button type="button" class="hall ' + cls + (F.hall === h ? ' on' : '') + '" data-act="set" data-field="hall" data-value="' + esc(h) + '"><b>' + esc(h) + '</b>' + (note ? '<small>' + esc(note) + '</small>' : '') + '</button>';
+  }).join('');
+}
+function renderCalc() {
+  const F = S.form, g = Number(F.guests), r = Number(F.ratePerPlate);
+  $('#calc').innerHTML = g && r ? '<div class="calc"><span>' + g.toLocaleString('en-IN') + ' guests × ' + money(r) + (F._totalTouched ? ' <span class="muted">(total edited)</span>' : '') + '</span><b>' + money(g * r) + '</b></div>' : '';
+}
+function onFormInput(el) {
+  const k = el.dataset.field, F = S.form;
+  F[k] = el.value;
+  if (S.errors[k]) { S.errors[k] = ''; const e = $('#err-' + k); if (e) e.textContent = ''; const f = $('#fld-' + k); if (f) f.classList.remove('has-err'); }
+  if (k === 'totalAmount') F._totalTouched = el.value !== '';
+  if ((k === 'guests' || k === 'ratePerPlate') && !F._totalTouched) {
+    const g = Number(F.guests), r = Number(F.ratePerPlate);
+    F.totalAmount = g && r ? String(g * r) : '';
+    const t = $('#f-total'); if (t) t.value = F.totalAmount;
+  }
+  if (k === 'followUpDate') refreshForm('status');
+  else if (['eventDate', 'guests', 'ratePerPlate', 'totalAmount'].indexOf(k) !== -1) refreshForm(k);
+}
+function validateForm() {
+  const F = S.form, e = {};
+  if (!F.customerName.trim()) e.customerName = 'Enter the customer name.';
+  const digits = cleanPhone(F.phone).replace(/^\+/, '');
+  if (!/^\d{10,13}$/.test(digits)) e.phone = 'Enter a 10 digit mobile number.';
+  if (F.status === 'Booked' || F.status === 'Completed') {
+    if (!F.eventDate) e.eventDate = 'Needed for a booking.';
+    if (!F.slot) e.slot = 'Choose morning or evening.';
+    if (!F.hall) e.hall = 'Choose a hall.';
+    if (!Number(F.guests)) e.guests = 'Needed for a booking.';
+    if (F.hall && F.eventDate && F.slot) {
+      const s = slotInfo(F.hall, F.eventDate, F.slot, F.id);
+      if (s.booked) e.hall = F.hall + ' is already booked for ' + s.booked.customerName + ' on this slot.';
+    }
+  }
+  if (F.status === 'Lost' && !F.lostReason.trim()) e.lostReason = 'Pick or type a reason.';
+  return e;
+}
+async function saveForm(btn) {
+  const errs = validateForm();
+  S.errors = errs;
+  document.querySelectorAll('.has-err').forEach(x => x.classList.remove('has-err'));
+  Object.keys(errs).forEach(k => { const el = $('#err-' + k); if (el) el.textContent = errs[k]; const f = $('#fld-' + k); if (f) f.classList.add('has-err'); });
+  const first = Object.keys(errs)[0];
+  if (first) {
+    const f = $('#fld-' + first) || $('#err-' + first);
+    if (f) f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    toast('Please check the highlighted fields.', { bad: true });
+    return;
+  }
+  const F = S.form, payload = {};
+  RECORD_KEYS.forEach(k => { payload[k] = typeof F[k] === 'string' ? F[k].trim() : F[k]; });
+  if (F.id) { payload.id = F.id; payload.updatedAt = F.updatedAt; }
+  try {
+    const saved = await mutate('apiSaveRecord', payload, btn);
+    S.route = { view: 'detail', id: saved.id, from: { view: 'bookings' } };
+    Hist.push(S.route);
+    render(); window.scrollTo(0, 0);
+    const msg = msgTemplates(byId(saved.id))[0];
+    toast((saved.status === 'Booked' ? 'Booking saved' : 'Saved') + ' · ' + saved.id, msg ? { action: msg.label === 'Booking confirmation' ? 'Send confirmation' : 'Send on WhatsApp', href: msg.href } : {});
+  } catch (e) { /* toast already shown */ }
+}
+
+/* =================================================================== detail */
+
+function msgTemplates(r) {
+  if (!r) return [];
+  const paid = paidFor(r.id), bal = balanceFor(r);
+  const when = fmtLong(r.eventDate) + (r.slot ? ' (' + r.slot + ')' : '');
+  const out = [];
+  const add = (label, text) => out.push({ label, text, href: waLink(r.phone, text) });
+  if (isOpen(r)) add('Thank you for your enquiry', 'Namaste ' + r.customerName + ' ji,\nThank you for your enquiry' + (r.eventType ? ' for your ' + r.eventType : '') + (r.hall ? ' at ' + r.hall : '') +
+    '. We would be happy to host you. Please let us know a convenient time to visit the hall and for food tasting.');
+  if (isBlocking(r)) add('Booking confirmation', 'Namaste ' + r.customerName + ' ji,\nYour booking is confirmed.\n\nBooking ID: ' + r.id + '\nOccasion: ' + (r.eventType || '-') + '\nVenue: ' + r.hall +
+    '\nDate: ' + when + '\nGuests: ' + r.guests + '\nTotal: ' + money(r.totalAmount) + '\nPaid: ' + money(paid) + '\nBalance: ' + money(bal) + '\n\nThank you!');
+  if (paid > 0) add('Payment receipt', 'Namaste ' + r.customerName + ' ji,\nWe have received ' + money(paid) + ' in total for booking ' + r.id + ' (' + when + ').' + (bal !== null ? '\nBalance remaining: ' + money(bal) : '') + '\nThank you!');
+  if (r.status === 'Booked' && bal > 0) add('Balance reminder', 'Namaste ' + r.customerName + ' ji,\nA gentle reminder that ' + money(bal) + ' is pending for your event on ' + when + ' at ' + r.hall + '. Thank you!');
+  if (r.status === 'Completed') add('Thank you after the event', 'Namaste ' + r.customerName + ' ji,\nThank you for celebrating with us at ' + r.hall + '. We hope you and your guests enjoyed it. A short review on Google would mean a lot to us!');
+  return out;
+}
+
+function viewDetail() {
+  const r = byId(S.route.id);
+  if (!r) return '<div class="card">' + emptyState('alert', 'Record not found', 'It may have been removed. Please refresh.', '<button class="btn btn-soft btn-sm" data-act="nav" data-view="bookings">Back to bookings</button>') + '</div>';
+  const pays = paymentsFor(r.id).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const paid = paidFor(r.id), bal = balanceFor(r), total = Number(r.totalAmount) || 0;
+  const today = S.data.today;
+
+  // hero
+  const facts = [
+    [icon('calendar', 'sm'), r.eventDate ? fmtLong(r.eventDate) + ' <span class="muted">· ' + rel(r.eventDate) + '</span>' : '<span class="muted">Date not set</span>'],
+    [icon('pin', 'sm'), r.hall ? esc(r.hall) + (r.slot ? ' <span class="muted">· ' + esc(r.slot) + '</span>' : '') : '<span class="muted">Hall not chosen</span>'],
+    [icon('users', 'sm'), r.guests ? esc(Number(r.guests).toLocaleString('en-IN')) + ' guests' : '<span class="muted">Guest count not set</span>']
+  ];
+  const hero = '<div class="card hero"><div class="hero-top">' + dateTile(r) + '<div style="flex:1;min-width:0"><h2>' + esc(r.customerName) + '</h2>' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' + pill(r.status) + '<span class="muted small">' + esc([r.eventType, r.id].filter(Boolean).join(' · ')) + '</span></div></div></div>' +
+    '<div class="facts">' + facts.map(f => '<div class="fact">' + f[0] + '<span>' + f[1] + '</span></div>').join('') + '</div>' +
+    '<div class="actions"><a class="btn btn-secondary" href="' + esc(telLink(r.phone)) + '">' + icon('phone') + 'Call</a>' +
+    '<a class="btn btn-secondary" href="' + esc(waLink(r.phone)) + '" target="_blank" rel="noopener">' + icon('chat') + 'WhatsApp</a>' +
+    '<button class="btn btn-secondary" data-act="edit" data-id="' + esc(r.id) + '">' + icon('edit') + 'Edit</button></div></div>';
+
+  // progress + next steps
+  const flow = ['Enquiry', 'Visit Scheduled', 'Tasting Scheduled', 'Booked', 'Completed'];
+  const short = ['Enquiry', 'Visit', 'Tasting', 'Booked', 'Done'];
+  const ci = flow.indexOf(r.status);
+  let stage = '';
+  if (ci !== -1) stage = '<div class="steps">' + flow.map((s, i) => '<div class="step ' + (i < ci ? 'done' : i === ci ? 'cur' : '') + '"><i></i>' + short[i] + '</div>').join('') + '</div>';
+  else if (r.status === 'Lost') stage = '<div class="banner banner-bad">' + icon('x', 'sm') + '<span><b>Lost.</b> ' + esc(r.lostReason || 'No reason noted') + '</span></div><div style="height:12px"></div>';
+  else stage = '<div class="banner banner-warn">' + icon('alert', 'sm') + '<span><b>Booking cancelled.</b> The slot is free for others.</span></div><div style="height:12px"></div>';
+  let alertHtml = '';
+  if (r.status === 'Booked' && r.eventDate && r.eventDate < today) alertHtml = '<div class="banner banner-info" style="margin-bottom:12px">' + icon('alert', 'sm') + '<span>This event date has passed. Mark it as done once the balance is settled.</span></div>';
+  const next = (NEXT[r.status] || []).map(s => {
+    const cls = s === 'Booked' || s === 'Completed' ? 'btn-ok' : s === 'Lost' || s === 'Cancelled' ? 'btn-danger' : 'btn-soft';
+    return '<button class="btn btn-sm ' + cls + '" data-act="move" data-status="' + esc(s) + '">' + esc(NEXT_LABEL[s]) + '</button>';
+  }).join('');
+  let follow = '';
+  if (isOpen(r)) {
+    const n = r.followUpDate ? diffDays(r.followUpDate) : null;
+    const tag = n === null ? '<span class="tag tag-warn">Not set</span>' : n < 0 ? '<span class="tag tag-bad">' + (-n) + 'd overdue</span>' : n === 0 ? '<span class="tag tag-warn">Today</span>' : '<span class="tag tag-ok">' + rel(r.followUpDate) + '</span>';
+    follow = '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><div class="lbl" style="margin:0">Next follow-up call</div><div class="small muted">' +
+      (r.followUpDate ? fmtLong(r.followUpDate) : 'No date set') + '</div></div>' + tag + '</div>' +
+      '<div class="chips" style="margin-top:10px"><span class="small muted" style="align-self:center">Called? Remind me</span>' +
+      [[1, 'Tomorrow'], [3, 'In 3 days'], [7, 'In a week']].map(o => '<button class="chip" data-act="follow" data-days="' + o[0] + '">' + o[1] + '</button>').join('') + '</div></div>';
+  }
+  const stageCard = '<div class="card card-pad"><div class="section-h" style="margin:0 0 12px"><h2>Progress</h2></div>' + stage + alertHtml + (next ? '<div class="next-btns">' + next + '</div>' : '<div class="small muted">No further steps. This event is complete.</div>') + follow + '</div>';
+
+  // payments
+  let payCard = '<div class="card card-pad"><div class="section-h" style="margin:0 0 10px"><h2>Payments</h2>' +
+    (r.status !== 'Lost' ? '<button class="btn btn-primary btn-sm" data-act="pay">' + icon('plus', 'sm') + 'Record payment</button>' : '') + '</div>';
+  if (total) {
+    const pct = Math.max(0, Math.min(100, paid / total * 100));
+    payCard += '<div class="money-big"><div><div class="small muted">Balance</div><b style="color:' + (bal > 0 ? 'var(--bad)' : 'var(--ok)') + '">' + money(Math.max(bal, 0)) + '</b></div>' +
+      (bal <= 0 ? '<span class="tag tag-ok">Fully paid</span>' : '<span class="small muted">' + Math.round(pct) + '% paid</span>') + '</div>' +
+      '<div class="bar"><i style="width:' + pct + '%"></i></div><div class="split"><span class="muted">Paid <b style="color:var(--ink)">' + money(paid) + '</b></span><span class="muted">Total <b style="color:var(--ink)">' + money(total) + '</b></span></div>';
+  } else {
+    payCard += '<div class="small muted">' + (paid ? 'Received ' + money(paid) + '. ' : '') + 'Add the rate per plate or total amount to track the balance.</div>';
+  }
+  payCard += pays.length ? '<div class="card list" style="margin-top:14px;box-shadow:none">' + pays.map(p =>
+    '<div class="row" style="cursor:default"><div class="avatar ic-ok">' + icon('rupee', 'sm') + '</div><div class="body"><div class="title">' + money(p.amount) + '</div><div class="meta">' + esc([p.mode, p.reference].filter(Boolean).join(' · ')) + '</div></div>' +
+    '<div class="end"><span class="small muted">' + fmtMed(p.date) + '</span></div></div>').join('') + '</div>' : '';
+  payCard += '</div>';
+
+  // messages
+  const msgs = msgTemplates(r);
+  const msgCard = msgs.length ? '<div class="card list"><div class="section-h" style="margin:0;padding:14px 14px 4px"><h2>Send on WhatsApp</h2></div>' + msgs.map(m =>
+    '<a class="row msg-row" href="' + esc(m.href) + '" target="_blank" rel="noopener"><div class="avatar">' + icon('chat', 'sm') + '</div><div class="body"><div class="title">' + esc(m.label) + '</div><div class="meta">' + esc(m.text.split('\n').slice(1).join(' ')) + '</div></div><span class="chev">' + icon('right', 'sm') + '</span></a>').join('') + '</div>' : '';
+
+  // details
+  const ts = iso => iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+  const kv = [['Mobile', esc(r.phone)], ['Address', esc(r.address)], ['Source', esc(r.source)], ['Rate per plate', r.ratePerPlate !== '' ? money(r.ratePerPlate) : ''],
+    ['Notes', esc(r.notes).replace(/\n/g, '<br>')], ['Added', esc([ts(r.createdAt), r.createdBy].filter(Boolean).join(' · '))], ['Last change', esc([ts(r.updatedAt), r.updatedBy].filter(Boolean).join(' · '))]];
+  const details = '<div class="card card-pad"><div class="section-h" style="margin:0 0 12px"><h2>Details</h2><button class="link" data-act="edit" data-id="' + esc(r.id) + '">Edit</button></div><dl class="kv">' +
+    kv.map(x => '<dt>' + x[0] + '</dt><dd>' + (x[1] || '<span class="muted">-</span>') + '</dd>').join('') + '</dl></div>';
+
+  return '<div class="grid-2"><div>' + hero + stageCard + '</div><div>' + payCard + (msgCard ? '<div style="height:14px"></div>' + msgCard : '') + '<div style="height:14px"></div>' + details + '</div></div>';
+}
+
+async function moveStatus(btn, status) {
+  const r = byId(S.route.id);
+  if (status === 'Lost') return lostSheet(r);
+  if (status === 'Cancelled') {
+    return openSheet('<h3>Cancel this booking?</h3><p class="sub">' + esc(r.hall) + ' on ' + fmtLong(r.eventDate) + ' (' + esc(r.slot) + ') will become free for other customers. Payments stay on record.</p>' +
+      '<div class="btns"><button class="btn btn-secondary" data-act="close-sheet">Keep booking</button><button class="btn btn-danger" data-act="confirm-cancel">Cancel booking</button></div>');
+  }
+  if (status === 'Booked') {
+    const missing = !r.hall || !r.eventDate || !r.slot || !Number(r.guests);
+    if (missing) {
+      S.prefill = { status: 'Booked' };
+      go('form', r.id);
+      toast('Add the date, slot, hall and guests to confirm the booking.');
+      return;
+    }
+    const s = slotInfo(r.hall, r.eventDate, r.slot, r.id);
+    if (s.booked) return toast(r.hall + ' is already booked for ' + s.booked.customerName + ' on this slot.', { bad: true });
+  }
+  try {
+    await mutate('apiSaveRecord', { id: r.id, updatedAt: r.updatedAt, status: status, lostReason: status === 'Enquiry' ? '' : r.lostReason }, btn);
+    const m = status === 'Booked' ? msgTemplates(byId(r.id)).find(x => x.label === 'Booking confirmation') : null;
+    toast('Moved to ' + status, m ? { action: 'Send confirmation', href: m.href } : {});
+  } catch (e) { /* shown */ }
+}
+function lostSheet(r) {
+  S.lostReason = '';
+  openSheet('<h3>Mark as lost</h3><p class="sub">Knowing why helps improve pricing and follow-ups.</p>' +
+    '<div class="chips" id="lost-chips" style="margin-top:12px">' + LOST_REASONS.map(x => '<button class="chip" data-act="lost-pick" data-value="' + esc(x) + '">' + esc(x) + '</button>').join('') + '</div>' +
+    '<div class="field"><label for="lost-text">Reason</label><input class="input" id="lost-text" placeholder="Pick above or type here"></div>' +
+    '<div class="btns"><button class="btn btn-secondary" data-act="close-sheet">Back</button><button class="btn btn-danger" data-act="confirm-lost">Mark as lost</button></div>');
+}
+
+function paySheet() {
+  const r = byId(S.route.id), bal = balanceFor(r);
+  const quick = [];
+  if (bal > 0) { quick.push([bal, 'Full balance']); if (bal >= 2000) quick.push([Math.round(bal / 2 / 100) * 100, 'Half']); }
+  [25000, 50000, 100000].forEach(v => { if (!bal || v < bal) quick.push([v, moneyShort(v)]); });
+  openSheet('<h3>Record payment</h3><p class="sub">' + esc(r.customerName) + (bal !== null ? ' · Balance ' + money(Math.max(bal, 0)) : '') + '</p>' +
+    '<div class="field"><label for="pay-amt">Amount <span class="req">*</span></label><div class="input-wrap"><span class="pre">₹</span><input class="input amount-input" id="pay-amt" type="number" inputmode="numeric" min="1" placeholder="0" autofocus></div>' +
+    '<div class="chips" style="margin-top:8px">' + quick.slice(0, 5).map(q => '<button class="chip" data-act="pay-quick" data-v="' + q[0] + '">' + esc(q[1]) + (q[1] === 'Full balance' || q[1] === 'Half' ? ' <span class="n">' + moneyShort(q[0]) + '</span>' : '') + '</button>').join('') + '</div></div>' +
+    '<div class="field"><span class="lbl">Mode <span class="req">*</span></span><div class="chips" id="pay-modes">' + S.data.lists.paymentModes.map((m, i) => '<button class="chip ' + (i === 1 ? 'on' : '') + '" data-act="pay-mode" data-v="' + esc(m) + '">' + esc(m) + '</button>').join('') + '</div></div>' +
+    '<div class="two"><div class="field"><label for="pay-date">Date</label><input class="input" id="pay-date" type="date" value="' + S.data.today + '"></div>' +
+    '<div class="field"><label for="pay-ref">Reference</label><input class="input" id="pay-ref" placeholder="UPI ref / cheque no."></div></div>' +
+    '<div class="err" id="pay-err"></div>' +
+    '<div class="btns"><button class="btn btn-secondary" data-act="close-sheet">Cancel</button><button class="btn btn-primary" data-act="pay-save">' + icon('check') + 'Save payment</button></div>');
+  S.payMode = S.data.lists.paymentModes[1];
+}
+async function savePayment(btn) {
+  const amt = Number($('#pay-amt').value);
+  if (!(amt > 0)) { $('#pay-err').textContent = 'Enter the amount received.'; $('#pay-amt').focus(); return; }
+  const r = byId(S.route.id);
+  try {
+    await mutate('apiAddPayment', { recordId: r.id, amount: amt, mode: S.payMode, date: $('#pay-date').value, reference: $('#pay-ref').value.trim() }, btn);
+    closeSheet();
+    const m = msgTemplates(byId(r.id)).find(x => x.label === 'Payment receipt');
+    toast('Payment of ' + money(amt) + ' saved', m ? { action: 'Send receipt', href: m.href } : {});
+  } catch (e) { /* shown */ }
+}
+
+/* =================================================================== calendar */
+
+function viewCalendar() {
+  const U = S.ui, D = S.data, list = halls();
+  if (U.calHall && list.indexOf(U.calHall) === -1) U.calHall = '';
+  const hallChips = '<div class="chips scroll">' + ['', ...list].map(h => '<button class="chip ' + (U.calHall === h ? 'on' : '') + '" data-act="cal-hall" data-v="' + esc(h) + '">' + esc(h || 'All halls') + '</button>').join('') + '</div>';
+  const [y, m] = U.calMonth.split('-').map(Number);
+  const first = new Date(Date.UTC(y, m - 1, 1)), days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const offset = (first.getUTCDay() + 6) % 7;
+  let cells = '';
+  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(w => { cells += '<div class="cal-dow">' + w + '</div>'; });
+  for (let i = 0; i < offset; i++) cells += '<div></div>';
+  const totalSlots = list.length * D.lists.slots.length;
+  for (let i = 1; i <= days; i++) {
+    const iso = U.calMonth + '-' + String(i).padStart(2, '0');
+    let inner;
+    if (U.calHall) {
+      inner = '<span class="slots">' + D.lists.slots.map(s => { const x = slotInfo(U.calHall, iso, s); return '<i class="' + (x.booked ? 'b' : x.interest.length ? 'e' : '') + '"></i>'; }).join('') + '</span>';
+    } else {
+      let booked = 0, interest = 0;
+      list.forEach(h => D.lists.slots.forEach(s => { const x = slotInfo(h, iso, s); if (x.booked) booked++; else if (x.interest.length) interest++; }));
+      inner = '<span class="load ' + (booked ? '' : 'zero') + '">' + (booked ? booked + '/' + totalSlots : '0') + '</span>' +
+        (interest && !booked ? '<span class="slots" style="width:30%"><i class="e"></i></span>' : '');
+    }
+    const cls = ['day', iso < D.today ? 'past' : '', iso === D.today ? 'today' : '', iso === U.calDay ? 'sel' : ''].join(' ');
+    cells += '<button class="' + cls + '" data-act="cal-day" data-v="' + iso + '" aria-label="' + fmtLong(iso) + '"><span class="num">' + i + '</span>' + inner + '</button>';
+  }
+  const legend = U.calHall
+    ? '<div class="legend"><span><i class="b"></i>Booked</span><span><i class="e"></i>Enquiry only</span><span><i></i>Free</span><span class="muted">Left bar morning, right bar evening</span></div>'
+    : '<div class="legend"><span><b style="color:var(--ok)">2/12</b> slots booked across all halls</span><span><i class="e"></i>Enquiries only</span></div>';
+  const cal = '<div class="cal-head"><button class="btn-icon" data-act="cal-prev" aria-label="Previous month">' + icon('left') + '</button><h3>' + monthLabel(U.calMonth) + '</h3>' +
+    '<button class="btn btn-secondary btn-sm" data-act="cal-today">Today</button><button class="btn-icon" data-act="cal-next" aria-label="Next month">' + icon('right') + '</button></div>' +
+    '<div class="card cal"><div class="cal-grid">' + cells + '</div>' + legend + '</div>';
+  return hallChips + '<div class="cal-layout"><div>' + cal + '</div><div class="side">' + dayPanel() + '</div></div>';
+}
+function dayPanel() {
+  const U = S.ui, D = S.data, iso = U.calDay;
+  const list = U.calHall ? [U.calHall] : halls();
+  const past = iso < D.today;
+  const blocks = list.map(h => '<div class="card list hall-block">' + (U.calHall ? '' : '<h4>' + esc(h) + '</h4>') + D.lists.slots.map(s => {
+    const x = slotInfo(h, iso, s);
+    let body, end = '';
+    if (x.booked) {
+      body = '<div class="title">' + esc(x.booked.customerName) + '</div><div class="meta">' + esc([x.booked.eventType, x.booked.guests ? x.booked.guests + ' guests' : ''].filter(Boolean).join(' · ')) + '</div>';
+      return '<button class="row" data-act="open" data-id="' + esc(x.booked.id) + '"><span class="lbl2">' + icon(s === 'Morning' ? 'sun' : 'moon', 'sm') + s + '</span><div class="body">' + body + '</div><div class="end">' + pill(x.booked.status) + '</div></button>';
+    }
+    body = '<div class="title" style="color:var(--ok)">Free</div>' + (x.interest.length ? '<div class="meta">' + x.interest.length + ' open enquir' + (x.interest.length > 1 ? 'ies' : 'y') + ': ' + esc(x.interest.map(r => r.customerName).join(', ')) + '</div>' : '');
+    if (!past) end = '<button class="btn btn-soft btn-sm" data-act="cal-book" data-hall="' + esc(h) + '" data-slot="' + s + '">' + icon('plus', 'sm') + 'Book</button>';
+    return '<div class="slot-row"><span class="lbl2">' + icon(s === 'Morning' ? 'sun' : 'moon', 'sm') + s + '</span><div class="body">' + body + '</div>' + end + '</div>';
+  }).join('') + '</div>').join('');
+  return '<div class="section-h" style="margin:18px 2px 10px"><h2>' + fmtMed(iso) + '</h2><span class="muted small">' + rel(iso) + '</span></div>' + blocks;
+}
+
+/* =================================================================== payments */
+
+function viewPayments() {
+  const D = S.data, U = S.ui, today = D.today, month = today.slice(0, 7);
+  const collected = D.payments.filter(p => String(p.date).slice(0, 7) === month).reduce((t, p) => t + Number(p.amount || 0), 0);
+  const dues = D.records.filter(r => isBlocking(r) && balanceFor(r) > 0).sort((a, b) => String(a.eventDate).localeCompare(String(b.eventDate)));
+  const outstanding = dues.reduce((t, r) => t + balanceFor(r), 0);
+  const overdue = dues.filter(r => r.eventDate < today).reduce((t, r) => t + balanceFor(r), 0);
+  const kpi = (ic, cls, v, l) => '<div class="kpi" style="cursor:default"><span class="ic ' + cls + '">' + icon(ic) + '</span><b>' + v + '</b><span>' + l + '</span></div>';
+  let body;
+  if (U.payTab === 'dues') {
+    body = dues.length ? '<div class="card list">' + dues.map(r => {
+      const rem = msgTemplates(r).find(x => x.label === 'Balance reminder');
+      return '<div class="row" style="cursor:default"><button class="row" style="padding:0;border:0;flex:1;min-width:0" data-act="open" data-id="' + esc(r.id) + '">' + dateTile(r) +
+        '<div class="body"><div class="title">' + esc(r.customerName) + '</div><div class="meta">' + esc(r.hall) + ' · ' + (r.eventDate < today ? '<span style="color:var(--bad)">event passed</span>' : rel(r.eventDate)) + '</div></div>' +
+        '<div class="end"><span class="amt" style="color:var(--bad)">' + money(balanceFor(r)) + '</span><span class="small muted">of ' + moneyShort(r.totalAmount) + '</span></div></button>' +
+        (rem ? '<a class="btn-icon" style="color:#1f8f4e" href="' + esc(rem.href) + '" target="_blank" rel="noopener" aria-label="Send reminder" title="Send reminder">' + icon('chat') + '</a>' : '') + '</div>';
+    }).join('') + '</div>' : '<div class="card">' + emptyState('check', 'No pending balances', 'Every booking is fully paid.') + '</div>';
+  } else {
+    const pays = D.payments.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.recordedAt).localeCompare(String(a.recordedAt)));
+    const groups = {};
+    pays.forEach(p => { const k = String(p.date).slice(0, 7); (groups[k] = groups[k] || []).push(p); });
+    body = pays.length ? Object.keys(groups).map(k => '<div class="group-h"><span>' + monthLabel(k) + '</span><span>' + money(groups[k].reduce((t, p) => t + Number(p.amount), 0)) + '</span></div><div class="card list">' +
+      groups[k].map(p => { const r = byId(p.recordId) || { customerName: p.recordId };
+        return '<button class="row" data-act="open" data-id="' + esc(p.recordId) + '"><div class="avatar ic-ok">' + icon('rupee', 'sm') + '</div><div class="body"><div class="title">' + esc(r.customerName) + '</div><div class="meta">' + esc([fmtMed(p.date), p.mode, p.reference].filter(Boolean).join(' · ')) + '</div></div><div class="end"><span class="amt" style="color:var(--ok)">+' + money(p.amount) + '</span></div></button>';
+      }).join('') + '</div>').join('') : '<div class="card">' + emptyState('wallet', 'No payments yet', 'Payments you record on a booking appear here.') + '</div>';
+  }
+  return '<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">' +
+    kpi('rupee', 'ic-ok', moneyShort(collected), 'Collected this month') + kpi('wallet', 'ic-brand', moneyShort(outstanding), 'Outstanding') + kpi('alert', 'ic-warn', moneyShort(overdue), 'Due after event') + '</div>' +
+    '<div class="seg" style="margin:20px 0 4px;max-width:420px"><button class="' + (U.payTab === 'dues' ? 'on' : '') + '" data-act="pay-tab" data-v="dues">To collect · ' + dues.length + '</button><button class="' + (U.payTab === 'received' ? 'on' : '') + '" data-act="pay-tab" data-v="received">Received</button></div>' +
+    '<div style="margin-top:12px">' + body + '</div>';
+}
+
+/* =================================================================== events */
+
+const ACT = {
+  'nav': el => go(el.dataset.view),
+  'new': () => go('form', '', { from: S.route.view === 'form' ? null : { view: S.route.view, id: S.route.id } }),
+  'back': () => back(),
+  'open': el => go('detail', el.dataset.id, { from: { view: S.route.view, id: S.route.id } }),
+  'edit': el => go('form', el.dataset.id),
+  'refresh': () => reload(true),
+  'close-sheet': () => closeSheet(),
+  'attn-toggle': () => { S.ui.attnAll = !S.ui.attnAll; render(); },
+  'set': el => {
+    const k = el.dataset.field;
+    S.form[k] = (k === 'hall' || k === 'slot' || k === 'source' || k === 'eventType') && S.form[k] === el.dataset.value && k !== 'status' ? '' : el.dataset.value;
+    if (k === 'status' && isOpen(S.form) && !S.form.followUpDate) S.form.followUpDate = addDays(S.data.today, 3);
+    if (k === 'lostReason') { const t = $('#f-lost'); if (t) t.value = S.form.lostReason; }
+    if (S.errors[k]) { S.errors[k] = ''; const e = $('#err-' + k); if (e) e.textContent = ''; const f = $('#fld-' + k); if (f) f.classList.remove('has-err'); }
+    refreshForm(k === 'lostReason' ? 'status' : k);
+  },
+  'fu': el => { S.form.followUpDate = addDays(S.data.today, Number(el.dataset.days)); refreshForm('status'); },
+  'save': el => saveForm(el),
+  'move': el => moveStatus(el, el.dataset.status),
+  'follow': async el => {
+    const r = byId(S.route.id), date = addDays(S.data.today, Number(el.dataset.days));
+    try { await mutate('apiSaveRecord', { id: r.id, updatedAt: r.updatedAt, followUpDate: date }, el); toast('Follow-up set for ' + fmtMed(date)); } catch (e) { /* shown */ }
+  },
+  'lost-pick': el => { $('#lost-text').value = el.dataset.value; document.querySelectorAll('#lost-chips .chip').forEach(c => c.classList.toggle('on', c === el)); },
+  'confirm-lost': async el => {
+    const reason = $('#lost-text').value.trim();
+    if (!reason) { $('#lost-text').focus(); $('#lost-text').classList.add('has-err'); return toast('Pick or type a reason.', { bad: true }); }
+    const r = byId(S.route.id);
+    try { await mutate('apiSaveRecord', { id: r.id, updatedAt: r.updatedAt, status: 'Lost', lostReason: reason }, el); closeSheet(); toast('Marked as lost'); } catch (e) { /* shown */ }
+  },
+  'confirm-cancel': async el => {
+    const r = byId(S.route.id);
+    try { await mutate('apiSaveRecord', { id: r.id, updatedAt: r.updatedAt, status: 'Cancelled' }, el); closeSheet(); toast('Booking cancelled. The slot is free again.'); } catch (e) { /* shown */ }
+  },
+  'pay': () => paySheet(),
+  'pay-quick': el => { $('#pay-amt').value = el.dataset.v; $('#pay-err').textContent = ''; },
+  'pay-mode': el => { S.payMode = el.dataset.v; document.querySelectorAll('#pay-modes .chip').forEach(c => c.classList.toggle('on', c === el)); },
+  'pay-save': el => savePayment(el),
+  'pay-tab': el => { S.ui.payTab = el.dataset.v; render(); },
+  'bk-tab': el => { S.ui.bkTab = el.dataset.key; $('#bk-tabs').innerHTML = bkTabs(); $('#bk-list').innerHTML = bkList(); },
+  'cal-hall': el => { S.ui.calHall = el.dataset.v; render(); },
+  'cal-day': el => {
+    S.ui.calDay = el.dataset.v; render();
+    if (window.innerWidth < 960) { const p = $('.cal-layout .side'); if (p) p.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  },
+  'cal-prev': () => shiftMonth(-1), 'cal-next': () => shiftMonth(1),
+  'cal-today': () => { S.ui.calMonth = S.data.today.slice(0, 7); S.ui.calDay = S.data.today; render(); },
+  'cal-book': el => { S.prefill = { hall: el.dataset.hall, slot: el.dataset.slot, eventDate: S.ui.calDay, status: 'Booked' }; go('form', '', { from: { view: 'calendar' } }); },
+  'demo-seed': () => { DemoServer.seed(); reload(true).then(() => toast('Sample data loaded')); },
+  'demo-reset': () => { DemoServer.reset(); reload(true).then(() => toast('Demo data cleared')); }
+};
+function shiftMonth(n) {
+  const [y, m] = S.ui.calMonth.split('-').map(Number);
+  const x = new Date(Date.UTC(y, m - 1 + n, 1));
+  S.ui.calMonth = x.toISOString().slice(0, 7);
+  S.ui.calDay = S.ui.calMonth === S.data.today.slice(0, 7) ? S.data.today : S.ui.calMonth + '-01';
+  render();
+}
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el || !ACT[el.dataset.act]) return;
+  e.preventDefault();
+  ACT[el.dataset.act](el, e);
+});
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (el.dataset && el.dataset.field && S.form && S.route.view === 'form') return onFormInput(el);
+  if (el.id === 'bk-q') { S.ui.q = el.value; $('#bk-tabs').innerHTML = bkTabs(); $('#bk-list').innerHTML = bkList(); }
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'bk-hall') { S.ui.hall = e.target.value; $('#bk-tabs').innerHTML = bkTabs(); $('#bk-list').innerHTML = bkList(); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && S.route.view === 'form' && e.target.tagName === 'INPUT') { e.preventDefault(); saveForm($('#save-btn')); }
+  if (e.key === 'Enter' && e.target.id === 'pay-amt') { e.preventDefault(); savePayment($('[data-act="pay-save"]')); }
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && S.data && Date.now() - S.lastLoad > 60000 && S.route.view !== 'form') reload(true);
+});
+
+/* =================================================================== demo server (used only outside Google) */
+
+const DemoServer = (() => {
+  const KEY = 'eventbusiness-demo-v2';
+  const LISTS = {
     statuses: ['Enquiry', 'Visit Scheduled', 'Tasting Scheduled', 'Booked', 'Completed', 'Cancelled', 'Lost'],
     openStatuses: ['Enquiry', 'Visit Scheduled', 'Tasting Scheduled'],
     blockingStatuses: ['Booked', 'Completed'],
@@ -439,75 +1258,88 @@ var DemoServer = (function () {
     sources: ['Word of mouth', 'Google', 'Walk-in', 'Repeat customer', 'Other'],
     paymentModes: ['Cash', 'UPI', 'Bank transfer', 'Cheque', 'Online link']
   };
-  var HALLS = ['Mahavir Banquet', 'Nirmala Hall', 'Vrindavan Vatika', 'C.H. Hall', 'Barfiwala Hall', 'M.M. Public School']
-    .map(function (n) { return { name: n, capacity: '', active: 'Yes' }; });
+  const HALLS = ['Mahavir Banquet', 'Nirmala Hall', 'Vrindavan Vatika', 'C.H. Hall', 'Barfiwala Hall', 'M.M. Public School'].map(n => ({ name: n, capacity: '', active: 'Yes' }));
+  const today = () => { const x = new Date(); return new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+  const plus = (n) => { const x = new Date(today() + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  let mem = null;
+  const load = () => { try { const v = JSON.parse(localStorage.getItem(KEY)); if (v) return v; } catch (e) { /* storage blocked */ } return mem || { records: [], payments: [] }; };
+  const store = (db) => { mem = db; try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* storage blocked */ } };
+  const nextId = (prefix, rows) => prefix + String(rows.reduce((m, r) => Math.max(m, parseInt(String(r.id).replace(prefix, ''), 10) || 0), 0) + 1).padStart(4, '0');
+  const num = v => v === '' || v === undefined || v === null ? '' : Number(v);
 
-  function today() { var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); }
-  function load() {
-    var db = null;
-    try { db = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
-    return db || { records: [], payments: [] };
-  }
-  function store(db) { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
-  function nextId(prefix, rows) {
-    var max = rows.reduce(function (m, r) { var n = parseInt(String(r.id).replace(prefix, ''), 10); return n > m ? n : m; }, 0);
-    return prefix + ('0000' + (max + 1)).slice(-4);
-  }
-
-  var api = {
-    apiBootstrap: function () {
-      var db = load();
-      return { user: 'demo@local', today: today(), lists: LISTS, halls: HALLS, records: db.records, payments: db.payments };
-    },
-    apiSaveRecord: function (o) {
-      var db = load(), now = new Date().toISOString();
-      if (!o.customerName) throw new Error('Customer name is required.');
-      o.phone = String(o.phone || '').replace(/[^\d+]/g, '');
-      if (!/^\+?\d{10,13}$/.test(o.phone)) throw new Error('Phone number should have 10 digits.');
-      if (LISTS.blockingStatuses.indexOf(o.status) !== -1) {
-        if (!o.hall || !o.eventDate || !o.slot || !o.guests) throw new Error('Hall, date, slot and guests are required for a booking.');
-        var clash = db.records.filter(function (r) {
-          return r.id !== o.id && LISTS.blockingStatuses.indexOf(r.status) !== -1 && r.hall === o.hall && r.eventDate === o.eventDate && r.slot === o.slot;
-        })[0];
-        if (clash) throw new Error(o.hall + ' is already booked on ' + o.eventDate + ' (' + o.slot + ') for ' + clash.customerName + ' [' + clash.id + '].');
+  const api = {
+    apiBootstrap: () => { const db = load(); return { user: 'demo@local', today: today(), lists: LISTS, halls: HALLS, records: db.records, payments: db.payments }; },
+    apiSaveRecord: (input) => {
+      const db = load(), now = new Date().toISOString();
+      const existing = input.id ? db.records.find(r => r.id === input.id) : null;
+      if (input.id && !existing) throw new Error('Record not found. Please refresh.');
+      if (existing && input.updatedAt && existing.updatedAt !== input.updatedAt) throw new Error('Someone else changed this record. Please refresh and try again.');
+      const rec = Object.assign({}, existing || {}, input);
+      rec.status = rec.status || 'Enquiry';
+      rec.phone = String(rec.phone || '').replace(/[^\d+]/g, '');
+      ['guests', 'ratePerPlate', 'totalAmount'].forEach(k => { rec[k] = num(rec[k]); });
+      if (rec.totalAmount === '' && rec.guests && rec.ratePerPlate) rec.totalAmount = rec.guests * rec.ratePerPlate;
+      const open = LISTS.openStatuses.indexOf(rec.status) !== -1;
+      if (open && !rec.followUpDate) rec.followUpDate = plus(3);
+      if (!open) rec.followUpDate = '';
+      if (!rec.customerName) throw new Error('Customer name is required.');
+      if (!/^\+?\d{10,13}$/.test(rec.phone)) throw new Error('Phone number should have 10 digits.');
+      if (LISTS.blockingStatuses.indexOf(rec.status) !== -1) {
+        if (!rec.hall || !rec.eventDate || !rec.slot || !rec.guests) throw new Error('Hall, date, slot and guests are required for a booking.');
+        const clash = db.records.find(r => r.id !== rec.id && LISTS.blockingStatuses.indexOf(r.status) !== -1 && r.hall === rec.hall && r.eventDate === rec.eventDate && r.slot === rec.slot);
+        if (clash) throw new Error(rec.hall + ' is already booked on ' + rec.eventDate + ' (' + rec.slot + ') for ' + clash.customerName + ' [' + clash.id + '].');
       }
-      if (o.status === 'Lost' && !o.lostReason) throw new Error('Please note why the customer was lost.');
-      ['guests', 'ratePerPlate', 'totalAmount'].forEach(function (k) { o[k] = o[k] === '' || o[k] === undefined ? '' : Number(o[k]); });
-      if (LISTS.openStatuses.indexOf(o.status) === -1) o.followUpDate = '';
-      o.updatedAt = now; o.updatedBy = 'demo@local';
-      if (o.id) {
-        var i = db.records.findIndex(function (r) { return r.id === o.id; });
-        db.records[i] = Object.assign({}, db.records[i], o);
-        o = db.records[i];
-      } else {
-        o.id = nextId('EB-', db.records); o.createdAt = now; o.createdBy = 'demo@local';
-        db.records.push(o);
-      }
+      if (rec.status === 'Lost' && !rec.lostReason) throw new Error('Please note why the customer was lost.');
+      rec.updatedAt = now; rec.updatedBy = 'demo@local';
+      if (existing) db.records[db.records.indexOf(existing)] = rec;
+      else { rec.id = nextId('EB-', db.records); rec.createdAt = now; rec.createdBy = 'demo@local'; db.records.push(rec); }
       store(db);
-      return o;
+      return rec;
     },
-    apiAddPayment: function (p) {
-      var db = load();
+    apiAddPayment: (p) => {
+      const db = load();
+      if (!db.records.find(r => r.id === p.recordId)) throw new Error('Booking not found.');
       if (!(Number(p.amount) > 0)) throw new Error('Enter an amount greater than zero.');
-      if (!p.mode) throw new Error('Choose a payment mode.');
-      p.id = nextId('PAY-', db.payments); p.amount = Number(p.amount); p.date = p.date || today();
-      p.recordedBy = 'demo@local'; p.recordedAt = new Date().toISOString();
-      db.payments.push(p);
-      store(db);
-      return p;
+      if (LISTS.paymentModes.indexOf(p.mode) === -1) throw new Error('Choose a payment mode.');
+      const pay = { id: nextId('PAY-', db.payments), recordId: p.recordId, date: p.date || today(), amount: Number(p.amount), mode: p.mode, reference: p.reference || '', recordedBy: 'demo@local', recordedAt: new Date().toISOString() };
+      db.payments.push(pay); store(db);
+      return pay;
     }
   };
+  function seed() {
+    store({ records: [], payments: [] });
+    const rows = [
+      ['Booked', 'Ramesh Sharma', '9876543210', 'Shaadi', 5, 'Evening', 'Vrindavan Vatika', 500, 900, 'Word of mouth', [[100000, 'UPI', -20]]],
+      ['Booked', 'Mehta Family', '9825012345', 'Reception', 2, 'Evening', 'Mahavir Banquet', 300, 750, 'Google', [[100000, 'Bank transfer', -30], [125000, 'UPI', -3]]],
+      ['Booked', 'Kiran Patel', '9909011122', 'Engagement', 9, 'Morning', 'Nirmala Hall', 150, 650, 'Repeat customer', [[30000, 'Cash', -10]]],
+      ['Booked', 'Trivedi Family', '9737012345', 'Reception', 5, 'Morning', 'Barfiwala Hall', 250, 700, 'Walk-in', []],
+      ['Booked', 'Anil Bhatt', '9624098765', 'Shaadi', 48, 'Evening', 'M.M. Public School', 800, 850, 'Word of mouth', [[50000, 'Cheque', -2]]],
+      ['Completed', 'Agarwal Family', '9898011223', 'Shaadi', -6, 'Evening', 'C.H. Hall', 400, 800, 'Google', [[150000, 'UPI', -40], [170000, 'Cash', -6]]],
+      ['Tasting Scheduled', 'Neha Joshi', '9714033445', 'Shaadi', 20, 'Evening', 'Vrindavan Vatika', 600, 900, 'Google', [], 0],
+      ['Enquiry', 'Desai Family', '9879055667', 'Reception', 35, 'Evening', 'Mahavir Banquet', 350, '', 'Word of mouth', [], -1],
+      ['Visit Scheduled', 'Pooja Shah', '9586077889', 'Engagement', 12, 'Morning', 'Nirmala Hall', 120, '', 'Walk-in', [], 1],
+      ['Enquiry', 'Vikram Rao', '9601099001', 'Other', 5, 'Evening', 'Vrindavan Vatika', 200, '', 'Google', [], 2]
+    ];
+    rows.forEach(x => {
+      const rec = api.apiSaveRecord({ status: x[0] === 'Completed' ? 'Booked' : x[0], customerName: x[1], phone: x[2], eventType: x[3], eventDate: plus(x[4]), slot: x[5], hall: x[6], guests: x[7], ratePerPlate: x[8], totalAmount: '', source: x[9], address: '', notes: '', followUpDate: x[11] !== undefined ? plus(x[11]) : '', lostReason: '' });
+      x[10].forEach(p => api.apiAddPayment({ recordId: rec.id, amount: p[0], mode: p[1], date: plus(p[2]) }));
+      if (x[0] === 'Completed') api.apiSaveRecord({ id: rec.id, status: 'Completed' });
+    });
+    api.apiSaveRecord({ status: 'Lost', customerName: 'Kapoor Family', phone: '9426011234', eventType: 'Reception', eventDate: plus(15), slot: 'Evening', hall: 'Mahavir Banquet', guests: 450, ratePerPlate: '', source: 'Google', lostReason: 'Price too high' });
+  }
   return {
-    call: function (fn, arg) {
-      return new Promise(function (resolve, reject) {
-        try { resolve(JSON.parse(JSON.stringify(api[fn](arg)))); } catch (e) { reject(e); }
-      });
-    }
+    call: (fn, arg) => new Promise((res, rej) => setTimeout(() => { try { res(JSON.parse(JSON.stringify(api[fn](arg)))); } catch (e) { rej(e); } }, 120)),
+    seed, reset: () => store({ records: [], payments: [] })
   };
 })();
 
-if (DEMO) document.getElementById('demo').hidden = false;
-reload().then(function () { go('home'); });
+/* =================================================================== start */
+
+$('#view').innerHTML = '<div style="padding-top:8px"><div class="sk" style="height:34px;width:60%"></div><div class="sk" style="height:16px;width:40%;margin-top:10px"></div>' +
+  '<div class="kpis" style="margin-top:20px">' + '<div class="sk" style="height:110px"></div>'.repeat(4) + '</div><div class="sk" style="height:260px;margin-top:24px"></div></div>';
+S.route = parseHash(location.hash);
+if (S.route.view === 'form' || S.route.view === 'detail') S.route = { view: 'home' };
+reload().then(() => { if (S.route.view === 'form') startForm(); render(); });
 </script>
 </body>
 </html>
