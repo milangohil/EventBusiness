@@ -27,6 +27,9 @@ function fakeSheet(name) {
         });
         return sheet.getRange(r, c, nr, nc);
       },
+      clearContent: () => {
+        for (let i = 0; i < nr; i++) for (let j = 0; j < nc; j++) if (rows[r - 1 + i]) rows[r - 1 + i][c - 1 + j] = '';
+      },
       setFontWeight() { return this; },
       setNumberFormat() { return this; }
     }),
@@ -140,4 +143,90 @@ test('columns are matched by header name, so reordering in the sheet is safe', (
   assert.strictEqual(d.records[0].id, 'EB-0001');
   assert.strictEqual(d.records[0].customerName, 'Sharma');
   assert.strictEqual(api.apiSaveRecord(booking({ slot: 'Morning' })).id, 'EB-0002');
+});
+
+// ---------------------------------------------------------------- Stage 2: kitchen
+
+function kitchenSetup() {
+  const env = load();
+  const { api } = env;
+  const sup = api.apiSaveSupplier({ name: 'Dairy Supplier', phone: '98250 00000' });
+  const paneer = api.apiSaveIngredient({ name: 'पनीर', nameEn: 'Paneer', unit: 'kg', category: 'Dairy', supplierId: sup.id });
+  const butter = api.apiSaveIngredient({ name: 'मक्खन', nameEn: 'Butter', unit: 'kg', category: 'Dairy', supplierId: sup.id });
+  const rice = api.apiSaveIngredient({ name: 'बासमती चावल', nameEn: 'Basmati rice', unit: 'kg', category: 'Grocery' });
+  const pbm = api.apiSaveDish({ name: 'पनीर बटर मसाला', category: 'Main course', recipe: [{ ingredientId: paneer.id, qtyPer100: 8 }, { ingredientId: butter.id, qtyPer100: 1.5 }] });
+  const jeera = api.apiSaveDish({ name: 'जीरा राइस', category: 'Rice', recipe: [{ ingredientId: rice.id, qtyPer100: 6 }, { ingredientId: butter.id, qtyPer100: 0.5 }] });
+  const rec = api.apiSaveRecord(booking());
+  return Object.assign(env, { sup, paneer, butter, rice, pbm, jeera, rec });
+}
+
+test('setup creates the kitchen sheets', () => {
+  const { sheets } = load();
+  ['Suppliers', 'Ingredients', 'Dishes', 'Recipes', 'Kitchen'].forEach((n) => assert.ok(sheets[n], n + ' sheet exists'));
+});
+
+test('saves suppliers, ingredients and dishes with recipes', () => {
+  const { api, sup, paneer, pbm, jeera } = kitchenSetup();
+  assert.strictEqual(sup.id, 'SUP-0001');
+  assert.strictEqual(sup.phone, '9825000000');
+  assert.strictEqual(paneer.id, 'ING-0001');
+  assert.strictEqual(pbm.dish.id, 'DSH-0001');
+  const d = api.apiBootstrap();
+  assert.strictEqual(d.dishes.length, 2);
+  assert.strictEqual(d.recipes.length, 4);
+  assert.strictEqual(d.recipes.filter((r) => r.dishId === jeera.dish.id).length, 2);
+});
+
+test('editing a recipe replaces only that dish\'s lines', () => {
+  const { api, pbm, paneer, jeera } = kitchenSetup();
+  api.apiSaveDish({ id: pbm.dish.id, recipe: [{ ingredientId: paneer.id, qtyPer100: 9 }] });
+  const d = api.apiBootstrap();
+  const lines = d.recipes.filter((r) => r.dishId === pbm.dish.id);
+  assert.strictEqual(lines.length, 1);
+  assert.strictEqual(lines[0].qtyPer100, 9);
+  assert.strictEqual(d.recipes.filter((r) => r.dishId === jeera.dish.id).length, 2);
+  assert.strictEqual(d.dishes.find((x) => x.id === pbm.dish.id).name, 'पनीर बटर मसाला', 'name kept when not sent');
+});
+
+test('rejects bad kitchen master data', () => {
+  const { api, paneer } = kitchenSetup();
+  assert.throws(() => api.apiSaveSupplier({ name: '' }), /name is required/);
+  assert.throws(() => api.apiSaveSupplier({ name: 'X', phone: '123' }), /10 digits/);
+  assert.throws(() => api.apiSaveIngredient({ name: 'Salt', unit: 'bag' }), /unit/);
+  assert.throws(() => api.apiSaveIngredient({ name: 'पनीर', unit: 'kg' }), /already exists/);
+  assert.throws(() => api.apiSaveIngredient({ name: 'Salt', unit: 'kg', supplierId: 'SUP-9999' }), /not found/);
+  assert.throws(() => api.apiSaveDish({ name: 'Dal', category: 'Soup-ish' }), /category/);
+  assert.throws(() => api.apiSaveDish({ name: 'Dal', category: 'Dal', recipe: [{ ingredientId: paneer.id, qtyPer100: 0 }] }), /more than zero/);
+  assert.throws(() => api.apiSaveDish({ name: 'Dal', category: 'Dal', recipe: [{ ingredientId: paneer.id, qtyPer100: 1 }, { ingredientId: paneer.id, qtyPer100: 2 }] }), /twice/);
+  assert.throws(() => api.apiSaveDish({ name: 'Dal', category: 'Dal', recipe: [{ ingredientId: 'ING-9999', qtyPer100: 1 }] }), /not found/);
+});
+
+test('menu, quantities and approval flow for a booking', () => {
+  const { api, rec, pbm, jeera, paneer, butter, rice } = kitchenSetup();
+  assert.throws(() => api.apiSaveQuantities({ recordId: rec.id, items: [] }), /menu before/);
+  let k = api.apiSaveMenu({ recordId: rec.id, dishIds: [pbm.dish.id, jeera.dish.id], menuStatus: 'Final', menuNotes: 'Less spicy' });
+  assert.strictEqual(k.dishIds.length, 2);
+  assert.strictEqual(k.menuStatus, 'Final');
+  k = api.apiSaveQuantities({ recordId: rec.id, updatedAt: k.updatedAt, approve: true, items: [
+    { ingredientId: paneer.id, calc: 40, qty: 42 }, { ingredientId: butter.id, calc: 10, qty: 10 }, { ingredientId: rice.id, calc: 30, qty: 30 }] });
+  assert.strictEqual(k.qtyStatus, 'Approved');
+  assert.strictEqual(k.approvedBy, 'staff@example.com');
+  assert.strictEqual(k.guestsUsed, 500);
+  const d = api.apiBootstrap();
+  assert.strictEqual(d.kitchen.length, 1);
+  assert.strictEqual(d.kitchen[0].items.length, 3);
+  assert.strictEqual(d.kitchen[0].items[0].qty, 42);
+  assert.deepStrictEqual(Array.from(d.kitchen[0].dishIds), [pbm.dish.id, jeera.dish.id]);
+  // Re-saving the same menu keeps approval; changing dishes flags a re-check.
+  k = api.apiSaveMenu({ recordId: rec.id, dishIds: [jeera.dish.id, pbm.dish.id], menuStatus: 'Final' });
+  assert.strictEqual(k.qtyStatus, 'Approved');
+  k = api.apiSaveMenu({ recordId: rec.id, dishIds: [jeera.dish.id], menuStatus: 'Final' });
+  assert.strictEqual(k.qtyStatus, 'Recheck');
+  assert.throws(() => api.apiSaveMenu({ recordId: rec.id, updatedAt: 'stale', dishIds: [] }), /Someone else/);
+  assert.throws(() => api.apiSaveMenu({ recordId: 'EB-9999', dishIds: [] }), /not found/);
+  assert.throws(() => api.apiSaveMenu({ recordId: rec.id, dishIds: ['DSH-9999'] }), /not found/);
+  assert.throws(() => api.apiSaveQuantities({ recordId: rec.id, items: [{ ingredientId: paneer.id, calc: 1, qty: '' }] }), /quantity for every item/);
+  k = api.apiSaveQuantities({ recordId: rec.id, items: [{ ingredientId: rice.id, calc: 30, qty: 30 }] });
+  assert.strictEqual(k.qtyStatus, 'Draft');
+  assert.strictEqual(k.approvedBy, '');
 });

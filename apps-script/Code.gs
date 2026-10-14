@@ -9,7 +9,10 @@
  * Run setup() once from the Apps Script editor, then deploy as a web app.
  */
 
-var SHEETS = { RECORDS: 'Records', PAYMENTS: 'Payments', HALLS: 'Halls' };
+var SHEETS = {
+  RECORDS: 'Records', PAYMENTS: 'Payments', HALLS: 'Halls',
+  SUPPLIERS: 'Suppliers', INGREDIENTS: 'Ingredients', DISHES: 'Dishes', RECIPES: 'Recipes', KITCHEN: 'Kitchen'
+};
 
 var RECORD_FIELDS = [
   ['id', 'ID'],
@@ -51,6 +54,55 @@ var HALL_FIELDS = [
   ['active', 'Active']
 ];
 
+var SUPPLIER_FIELDS = [
+  ['id', 'Supplier ID'],
+  ['name', 'Name'],
+  ['phone', 'Phone'],
+  ['supplies', 'Supplies'],
+  ['active', 'Active']
+];
+
+var INGREDIENT_FIELDS = [
+  ['id', 'Ingredient ID'],
+  ['name', 'Name'],
+  ['nameEn', 'English Name'],
+  ['unit', 'Unit'],
+  ['category', 'Category'],
+  ['supplierId', 'Supplier ID'],
+  ['active', 'Active']
+];
+
+var DISH_FIELDS = [
+  ['id', 'Dish ID'],
+  ['name', 'Name'],
+  ['nameEn', 'English Name'],
+  ['category', 'Category'],
+  ['active', 'Active']
+];
+
+// One row per ingredient used in a dish. Quantity is in the ingredient's unit, for 100 guests.
+var RECIPE_FIELDS = [
+  ['dishId', 'Dish ID'],
+  ['ingredientId', 'Ingredient ID'],
+  ['qtyPer100', 'Qty per 100 Guests']
+];
+
+// One row per booking: its menu and the approved purchase list.
+var KITCHEN_FIELDS = [
+  ['recordId', 'Booking ID'],
+  ['dishIds', 'Dish IDs'],
+  ['menuStatus', 'Menu Status'],
+  ['menuNotes', 'Menu Notes'],
+  ['guestsUsed', 'Guests Used'],
+  ['items', 'Items'],
+  ['qtyStatus', 'Quantity Status'],
+  ['approvedBy', 'Approved By'],
+  ['approvedAt', 'Approved At'],
+  ['kitchenNotes', 'Kitchen Notes'],
+  ['updatedAt', 'Updated At'],
+  ['updatedBy', 'Updated By']
+];
+
 var DEFAULT_HALLS = [
   ['Mahavir Banquet', '', 'Yes'],
   ['Nirmala Hall', '', 'Yes'],
@@ -67,10 +119,21 @@ var LISTS = {
   eventTypes: ['Shaadi', 'Reception', 'Engagement', 'Other'],
   slots: ['Morning', 'Evening'],
   sources: ['Word of mouth', 'Google', 'Walk-in', 'Repeat customer', 'Other'],
-  paymentModes: ['Cash', 'UPI', 'Bank transfer', 'Cheque', 'Online link']
+  paymentModes: ['Cash', 'UPI', 'Bank transfer', 'Cheque', 'Online link'],
+  units: ['kg', 'gram', 'litre', 'ml', 'piece', 'dozen', 'packet', 'box', 'bundle'],
+  ingredientCategories: ['Grocery', 'Vegetables', 'Fruits', 'Dairy', 'Spices', 'Oil & Ghee', 'Dry fruits', 'Disposables', 'Other'],
+  // [English, Hindi] - Hindi is used on the printed menu.
+  dishCategories: [
+    ['Welcome drink', 'वेलकम ड्रिंक'], ['Starter', 'स्टार्टर'], ['Soup', 'सूप'], ['Chaat', 'चाट'], ['Farsan', 'फरसाण'],
+    ['Main course', 'मुख्य व्यंजन'], ['Dal', 'दाल'], ['Rice', 'चावल'], ['Roti', 'रोटी'], ['Salad', 'सलाद'],
+    ['Raita', 'रायता'], ['Sweet', 'मिठाई'], ['Dessert', 'डेज़र्ट'], ['Other', 'अन्य']
+  ],
+  menuStatuses: ['Draft', 'Final'],
+  qtyStatuses: ['Draft', 'Approved', 'Recheck']
 };
 
-var TEXT_COLUMNS = ['id', 'createdAt', 'updatedAt', 'phone', 'eventDate', 'followUpDate', 'recordId', 'date', 'recordedAt'];
+var TEXT_COLUMNS = ['id', 'createdAt', 'updatedAt', 'phone', 'eventDate', 'followUpDate', 'recordId', 'date', 'recordedAt',
+  'supplierId', 'dishId', 'ingredientId', 'dishIds', 'items', 'approvedAt'];
 var FOLLOW_UP_DAYS = 3;
 
 // ---------------------------------------------------------------- web app
@@ -89,6 +152,11 @@ function setup() {
   ensureSheet_(ss, SHEETS.RECORDS, RECORD_FIELDS, []);
   ensureSheet_(ss, SHEETS.PAYMENTS, PAYMENT_FIELDS, []);
   ensureSheet_(ss, SHEETS.HALLS, HALL_FIELDS, DEFAULT_HALLS);
+  ensureSheet_(ss, SHEETS.SUPPLIERS, SUPPLIER_FIELDS, []);
+  ensureSheet_(ss, SHEETS.INGREDIENTS, INGREDIENT_FIELDS, []);
+  ensureSheet_(ss, SHEETS.DISHES, DISH_FIELDS, []);
+  ensureSheet_(ss, SHEETS.RECIPES, RECIPE_FIELDS, []);
+  ensureSheet_(ss, SHEETS.KITCHEN, KITCHEN_FIELDS, []);
   return 'Setup complete';
 }
 
@@ -103,8 +171,212 @@ function apiBootstrap() {
     halls: readRows_(ss.getSheetByName(SHEETS.HALLS), HALL_FIELDS)
       .filter(function (h) { return h.name && String(h.active).toLowerCase() !== 'no'; }),
     records: readRows_(ss.getSheetByName(SHEETS.RECORDS), RECORD_FIELDS),
-    payments: readRows_(ss.getSheetByName(SHEETS.PAYMENTS), PAYMENT_FIELDS)
+    payments: readRows_(ss.getSheetByName(SHEETS.PAYMENTS), PAYMENT_FIELDS),
+    suppliers: readOptional_(ss, SHEETS.SUPPLIERS, SUPPLIER_FIELDS),
+    ingredients: readOptional_(ss, SHEETS.INGREDIENTS, INGREDIENT_FIELDS),
+    dishes: readOptional_(ss, SHEETS.DISHES, DISH_FIELDS),
+    recipes: readOptional_(ss, SHEETS.RECIPES, RECIPE_FIELDS).filter(function (r) { return r.dishId && r.ingredientId; }),
+    kitchen: readOptional_(ss, SHEETS.KITCHEN, KITCHEN_FIELDS).map(parseKitchen_)
   };
+}
+
+// ---------------------------------------------------------------- kitchen API (Stage 2)
+
+function apiSaveSupplier(input) {
+  return withLock_(function () {
+    var sheet = kitchenSheet_(SHEETS.SUPPLIERS);
+    var rows = readRows_(sheet, SUPPLIER_FIELDS);
+    var rec = mergeEntity_(SUPPLIER_FIELDS, input, findById_(rows, input.id, 'Supplier'));
+    rec.phone = String(rec.phone).replace(/[^\d+]/g, '');
+    rec.active = rec.active === 'No' ? 'No' : 'Yes';
+    if (!rec.name) throw new Error('Supplier name is required.');
+    if (rec.phone && !/^\+?\d{10,13}$/.test(rec.phone)) throw new Error('Supplier phone should have 10 digits.');
+    return saveEntity_(sheet, SUPPLIER_FIELDS, 'SUP-', rows, rec);
+  });
+}
+
+function apiSaveIngredient(input) {
+  return withLock_(function () {
+    var sheet = kitchenSheet_(SHEETS.INGREDIENTS);
+    var rows = readRows_(sheet, INGREDIENT_FIELDS);
+    var rec = mergeEntity_(INGREDIENT_FIELDS, input, findById_(rows, input.id, 'Ingredient'));
+    rec.active = rec.active === 'No' ? 'No' : 'Yes';
+    if (!rec.name) throw new Error('Ingredient name is required.');
+    if (LISTS.units.indexOf(rec.unit) === -1) throw new Error('Choose a unit for ' + rec.name + '.');
+    if (rec.category && LISTS.ingredientCategories.indexOf(rec.category) === -1) throw new Error('Unknown ingredient category.');
+    if (rec.supplierId) findById_(readRows_(kitchenSheet_(SHEETS.SUPPLIERS), SUPPLIER_FIELDS), rec.supplierId, 'Supplier');
+    var clash = rows.filter(function (r) { return r.id !== rec.id && String(r.name).trim().toLowerCase() === rec.name.toLowerCase(); })[0];
+    if (clash) throw new Error('An ingredient called "' + rec.name + '" already exists (' + clash.id + ').');
+    return saveEntity_(sheet, INGREDIENT_FIELDS, 'ING-', rows, rec);
+  });
+}
+
+/** Saves a dish and replaces its recipe lines: input.recipe = [{ingredientId, qtyPer100}]. */
+function apiSaveDish(input) {
+  return withLock_(function () {
+    var sheet = kitchenSheet_(SHEETS.DISHES);
+    var rows = readRows_(sheet, DISH_FIELDS);
+    var rec = mergeEntity_(DISH_FIELDS, input, findById_(rows, input.id, 'Dish'));
+    rec.active = rec.active === 'No' ? 'No' : 'Yes';
+    if (!rec.name) throw new Error('Dish name is required.');
+    var cats = LISTS.dishCategories.map(function (c) { return c[0]; });
+    if (cats.indexOf(rec.category) === -1) throw new Error('Choose a category for ' + rec.name + '.');
+    var clash = rows.filter(function (r) { return r.id !== rec.id && String(r.name).trim().toLowerCase() === rec.name.toLowerCase(); })[0];
+    if (clash) throw new Error('A dish called "' + rec.name + '" already exists (' + clash.id + ').');
+
+    var ingredientIds = readRows_(kitchenSheet_(SHEETS.INGREDIENTS), INGREDIENT_FIELDS).map(function (i) { return i.id; });
+    var seen = {};
+    var lines = (input.recipe || []).map(function (l) {
+      var qty = Number(l.qtyPer100);
+      if (ingredientIds.indexOf(l.ingredientId) === -1) throw new Error('Ingredient ' + l.ingredientId + ' was not found.');
+      if (seen[l.ingredientId]) throw new Error('An ingredient is listed twice in this recipe.');
+      if (!(qty > 0)) throw new Error('Every recipe quantity must be more than zero.');
+      seen[l.ingredientId] = true;
+      return { ingredientId: l.ingredientId, qtyPer100: qty };
+    });
+
+    var dish = saveEntity_(sheet, DISH_FIELDS, 'DSH-', rows, rec);
+    var recipeSheet = kitchenSheet_(SHEETS.RECIPES);
+    var keep = readRows_(recipeSheet, RECIPE_FIELDS).filter(function (r) { return r.dishId !== dish.id; });
+    lines.forEach(function (l) { keep.push({ dishId: dish.id, ingredientId: l.ingredientId, qtyPer100: l.qtyPer100 }); });
+    replaceRows_(recipeSheet, RECIPE_FIELDS, keep);
+    return { dish: dish, recipe: lines.map(function (l) { return { dishId: dish.id, ingredientId: l.ingredientId, qtyPer100: l.qtyPer100 }; }) };
+  });
+}
+
+/** Saves the menu for a booking. Changing the dishes after approval flags quantities for a re-check. */
+function apiSaveMenu(input) {
+  return withLock_(function () {
+    var ctx = kitchenContext_(input);
+    var dishIds = readRows_(kitchenSheet_(SHEETS.DISHES), DISH_FIELDS).map(function (d) { return d.id; });
+    var ids = [];
+    (input.dishIds || []).forEach(function (id) {
+      if (dishIds.indexOf(id) === -1) throw new Error('Dish ' + id + ' was not found.');
+      if (ids.indexOf(id) === -1) ids.push(id);
+    });
+    var k = ctx.kitchen;
+    var changed = k.dishIds.slice().sort().join(',') !== ids.slice().sort().join(',');
+    k.dishIds = ids;
+    k.menuStatus = input.menuStatus === 'Final' ? 'Final' : 'Draft';
+    k.menuNotes = clean_(input.menuNotes);
+    if (changed && k.qtyStatus === 'Approved') k.qtyStatus = 'Recheck';
+    return writeKitchen_(ctx, k);
+  });
+}
+
+/** Saves the purchase list: input.items = [{ingredientId, calc, qty, extra}]. approve=true marks it approved. */
+function apiSaveQuantities(input) {
+  return withLock_(function () {
+    var ctx = kitchenContext_(input);
+    var ingredientIds = readRows_(kitchenSheet_(SHEETS.INGREDIENTS), INGREDIENT_FIELDS).map(function (i) { return i.id; });
+    var items = (input.items || []).map(function (it) {
+      if (ingredientIds.indexOf(it.ingredientId) === -1) throw new Error('Ingredient ' + it.ingredientId + ' was not found.');
+      var qty = Number(it.qty), calc = Number(it.calc) || 0;
+      if (!(qty >= 0) || it.qty === '' || it.qty === null) throw new Error('Enter a quantity for every item (0 if not needed).');
+      return { ingredientId: it.ingredientId, calc: round_(calc), qty: round_(qty), extra: !!it.extra };
+    });
+    var k = ctx.kitchen;
+    if (!k.dishIds.length) throw new Error('Save a menu before the quantities.');
+    k.items = items;
+    k.guestsUsed = Number(ctx.record.guests) || '';
+    k.kitchenNotes = clean_(input.kitchenNotes);
+    if (input.approve) {
+      k.qtyStatus = 'Approved';
+      k.approvedBy = currentUser_();
+      k.approvedAt = nowIso_();
+    } else {
+      k.qtyStatus = 'Draft';
+      k.approvedBy = '';
+      k.approvedAt = '';
+    }
+    return writeKitchen_(ctx, k);
+  });
+}
+
+function kitchenContext_(input) {
+  var record = readRows_(getSpreadsheet_().getSheetByName(SHEETS.RECORDS), RECORD_FIELDS)
+    .filter(function (r) { return r.id === input.recordId; })[0];
+  if (!record) throw new Error('Booking ' + input.recordId + ' was not found.');
+  var sheet = kitchenSheet_(SHEETS.KITCHEN);
+  var rows = readRows_(sheet, KITCHEN_FIELDS);
+  var existing = rows.filter(function (r) { return r.recordId === record.id; })[0];
+  if (existing && input.updatedAt && existing.updatedAt && input.updatedAt !== existing.updatedAt) {
+    throw new Error('Someone else changed this kitchen sheet (by ' + existing.updatedBy + '). Please refresh and try again.');
+  }
+  var kitchen = existing ? parseKitchen_(existing) : {
+    recordId: record.id, dishIds: [], menuStatus: 'Draft', menuNotes: '', guestsUsed: '', items: [],
+    qtyStatus: 'Draft', approvedBy: '', approvedAt: '', kitchenNotes: '', updatedAt: '', updatedBy: ''
+  };
+  return { record: record, sheet: sheet, existing: existing, kitchen: kitchen };
+}
+
+function writeKitchen_(ctx, k) {
+  k.updatedAt = nowIso_();
+  k.updatedBy = currentUser_();
+  var row = {};
+  KITCHEN_FIELDS.forEach(function (f) { row[f[0]] = k[f[0]]; });
+  row.dishIds = k.dishIds.join(',');
+  row.items = JSON.stringify(k.items || []);
+  if (ctx.existing) writeRow_(ctx.sheet, KITCHEN_FIELDS, ctx.existing._row, row);
+  else appendRow_(ctx.sheet, KITCHEN_FIELDS, row);
+  var out = parseKitchen_(row);
+  delete out._row;
+  return out;
+}
+
+function parseKitchen_(row) {
+  var k = {};
+  KITCHEN_FIELDS.forEach(function (f) { k[f[0]] = row[f[0]] === undefined ? '' : row[f[0]]; });
+  k.dishIds = Array.isArray(row.dishIds) ? row.dishIds : String(row.dishIds || '').split(',').map(function (s) { return s.trim(); }).filter(String);
+  if (Array.isArray(row.items)) k.items = row.items;
+  else {
+    try { k.items = row.items ? JSON.parse(row.items) : []; } catch (e) { k.items = []; }
+  }
+  if (row._row) k._row = row._row;
+  return k;
+}
+
+function kitchenSheet_(name) {
+  var sheet = getSpreadsheet_().getSheetByName(name);
+  if (!sheet) throw new Error('The ' + name + ' sheet is missing. Run setup() again in the Apps Script editor.');
+  return sheet;
+}
+
+function readOptional_(ss, name, fields) {
+  var sheet = ss.getSheetByName(name);
+  return sheet ? readRows_(sheet, fields) : [];
+}
+
+function findById_(rows, id, label) {
+  if (!id) return null;
+  var found = rows.filter(function (r) { return r.id === id; })[0];
+  if (!found) throw new Error(label + ' ' + id + ' was not found. Please refresh.');
+  return found;
+}
+
+function mergeEntity_(fields, input, existing) {
+  var rec = {};
+  fields.forEach(function (f) {
+    rec[f[0]] = existing ? existing[f[0]] : '';
+    if (input.hasOwnProperty(f[0]) && f[0] !== 'id') rec[f[0]] = clean_(input[f[0]]);
+  });
+  rec.name = String(rec.name || '').trim();
+  if (existing) { rec.id = existing.id; rec._row = existing._row; }
+  return rec;
+}
+
+function saveEntity_(sheet, fields, prefix, rows, rec) {
+  if (rec._row) writeRow_(sheet, fields, rec._row, rec);
+  else {
+    rec.id = nextId_(prefix, rows);
+    appendRow_(sheet, fields, rec);
+  }
+  delete rec._row;
+  return rec;
+}
+
+function round_(n) {
+  return Math.round(Number(n) * 1000) / 1000;
 }
 
 /**
@@ -307,6 +579,18 @@ function writeRow_(sheet, fields, rowNumber, obj, isNew) {
   });
   var range = sheet.getRange(rowNumber, 1, 1, h.width);
   range.setValues([rowValues_(h, fields, obj, isNew ? null : range.getValues()[0])]);
+}
+
+/** Rewrites every data row of a sheet (used for recipe lines, which are replaced per dish). */
+function replaceRows_(sheet, fields, rows) {
+  var h = headerMap_(sheet, fields);
+  var last = sheet.getLastRow();
+  if (last >= 2) sheet.getRange(2, 1, last - 1, h.width).clearContent();
+  if (!rows.length) return;
+  fields.forEach(function (f) {
+    if (TEXT_COLUMNS.indexOf(f[0]) !== -1) sheet.getRange(2, h.map[f[0]] + 1, rows.length, 1).setNumberFormat('@');
+  });
+  sheet.getRange(2, 1, rows.length, h.width).setValues(rows.map(function (r) { return rowValues_(h, fields, r); }));
 }
 
 function nextId_(prefix, rows) {

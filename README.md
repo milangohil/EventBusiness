@@ -20,12 +20,25 @@ All data is saved in a Google Sheet you own, and the app is hosted free by Googl
   - A lost enquiry needs a reason.
   - If two people edit the same record at once, the second save is stopped instead of overwriting the first.
 
+### Kitchen (Stage 2)
+Replaces the 3-page Word file made for every event.
+- **Dishes & recipes:** add each dish once (Hindi name, category) with its ingredients **for 100 guests**.
+- **Ingredients & suppliers:** each ingredient has a unit (kg, litre, piece...) and a supplier with a WhatsApp number.
+- **Menu builder:** on any enquiry or booking, tick dishes (for example during food tasting) and mark the menu **Final**.
+- **Kitchen sheet:** shows the Hindi menu card and a purchase list grouped by supplier, scaled to the guest count and rounded up to sensible buying amounts. Devji bhai checks it, edits quantities, adds extra items (gas, disposables), then taps **Approve**.
+- **Supplier orders unlock only after approval.** Each supplier gets a ready WhatsApp order. **Share list** sends the full list to Vinod bhai, and **Print / PDF** prints the menu, purchase list and ingredient list.
+- **Safety checks:** if the guest count or menu changes after approval, the sheet is flagged **Re-check** and needs approving again.
+- **The 6-day rule:** Home and Kitchen > Events flag every booking within 6 days whose menu or quantities aren't approved yet.
+
 ### Where the data lives
 | Sheet tab | One row per |
 |---|---|
 | `Records` | enquiry or booking |
 | `Payments` | payment received |
 | `Halls` | hall. Edit this tab to rename, add or deactivate halls (set Active to `No`) |
+| `Suppliers`, `Ingredients`, `Dishes` | supplier / ingredient / dish (best edited in the app) |
+| `Recipes` | ingredient used in a dish, with quantity per 100 guests |
+| `Kitchen` | booking's menu and approved purchase list |
 
 Rensi and the owner can open the Google Sheet at any time to view or export data.
 
@@ -48,7 +61,7 @@ Rensi and the owner can open the Google Sheet at any time to view or export data
 > The first time each person opens the app, Google shows *"Google hasn't verified this app"*. This is normal for private business apps. Click **Advanced > Go to Event Business (unsafe)** and allow access. It's asked only once.
 
 ### Updating the app later
-Paste the new code into the editor, then click **Deploy > Manage deployments > Edit (pencil) > Version: New version > Deploy**. The URL stays the same.
+Paste the new code into the editor. **If `Code.gs` changed, run `setup` once more** (it adds any new tabs and never touches existing data). Then click **Deploy > Manage deployments > Edit (pencil) > Version: New version > Deploy**. The URL stays the same.
 
 ### Try it without Google
 Open `apps-script/Index.html` directly in a browser. It runs in **demo mode** and saves data only in that browser. Tap **Load sample data** to see it filled with example bookings.
@@ -57,6 +70,5 @@ Open `apps-script/Index.html` directly in a browser. It runs in **demo mode** an
 `node --test tests/*.test.js` runs the server logic in `Code.gs` against an in-memory fake of Google Sheets.
 
 ### Coming next
-- **Stage 2:** menu builder (Hindi), recipe master, automatic ingredient list 6 days before each event.
 - **Stage 3:** supplier orders and automatic WhatsApp messages and payment links.
 - **Stage 4:** inventory and owner dashboard.
