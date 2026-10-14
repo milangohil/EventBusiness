@@ -25,7 +25,13 @@ Replaces the 3-page Word file made for every event.
 - **Dishes & recipes:** add each dish once (Hindi name, category) with its ingredients **for 100 guests**.
 - **Ingredients & suppliers:** each ingredient has a unit (kg, litre, piece...) and a supplier with a WhatsApp number.
 - **Menu builder:** on any enquiry or booking, tick dishes (for example during food tasting) and mark the menu **Final**.
-- **Kitchen sheet:** shows the Hindi menu card and a purchase list grouped by supplier, scaled to the guest count and rounded up to sensible buying amounts. Devji bhai checks it, edits quantities, adds extra items (gas, disposables), then taps **Approve**.
+- **Kitchen sheet:** a purchase list grouped by supplier, scaled to the guest count and rounded up to sensible buying amounts, plus the Hindi menu card.
+- **Reviewing quantities (Devji bhai):**
+  - Tap **How?** on any item to see the working, e.g. *Paneer Butter Masala 8 kg per 100 × 500 = 40 kg*.
+  - Changes are flagged automatically: **blue** = changed slightly, **orange** = more than 25% off the recipe, **red** = zero, missing, or more than double / under half (likely a typo).
+  - Tap **Mark checked** on each supplier. A supplier with red items can't be checked, and editing an item un-checks its supplier.
+  - **Approve** unlocks only when every supplier is checked, and shows a summary of what changed before confirming.
+  - After approval the list is **locked** (read-only) with supplier Order buttons. **Edit quantities** unlocks it, and the old approval stays until it is approved again.
 - **Supplier orders unlock only after approval.** Each supplier gets a ready WhatsApp order. **Share list** sends the full list to Vinod bhai, and **Print / PDF** prints the menu, purchase list and ingredient list.
 - **Safety checks:** if the guest count or menu changes after approval, the sheet is flagged **Re-check** and needs approving again.
 - **The 6-day rule:** Home and Kitchen > Events flag every booking within 6 days whose menu or quantities aren't approved yet.

@@ -359,6 +359,25 @@
     .sup-h .body { flex: 1; min-width: 0; }
     .sup-h .title { font-weight: 650; }
     .sup-h .meta { font-size: 12.5px; color: var(--muted); }
+    .mini-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+    .mini-stat { background: var(--surface-2); border-radius: 11px; padding: 8px 6px; text-align: center; }
+    .mini-stat b { display: block; font: 600 18px/1.2 var(--display); }
+    .mini-stat span { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+    .why-btn { border: 0; background: none; text-align: left; padding: 0; cursor: pointer; color: inherit; font: inherit; }
+    .why-hint { color: var(--brand); font-weight: 650; margin-left: 4px; }
+    .why { padding: 10px 14px 12px; background: var(--surface-2); font-size: 13px; display: grid; gap: 5px; }
+    .why-row { display: flex; justify-content: space-between; gap: 10px; }
+    .flag { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 650; margin-top: 3px; }
+    .flag.bad { color: var(--bad); } .flag.warn { color: var(--warn); } .flag.info { color: var(--info); }
+    .qty-row.bad { background: color-mix(in srgb, var(--bad-soft) 70%, transparent); }
+    .qty-row.warn { background: color-mix(in srgb, var(--warn-soft) 70%, transparent); }
+    .ks-item + .ks-item { border-top: 1px solid var(--line); }
+    .ks-item .qty-row { border-top: 0; }
+    .ks-group.done { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+    .ks-group.done .sup-h { background: var(--ok-soft); }
+    .qty-read { flex: none; min-width: 88px; text-align: right; font-weight: 700; font-size: 15px; }
+    .qty-read .u { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+    .menu-wrap.closed { display: none; }
     .print-only { display: none; }
     @media print {
       @page { margin: 14mm; }
@@ -367,6 +386,8 @@
       .content { padding: 0; max-width: none; }
       .card { box-shadow: none; border-color: #bbb; break-inside: avoid; }
       .print-only { display: block; }
+      .menu-wrap.closed { display: block !important; }
+      .why { display: none; }
       .page-break { break-before: page; }
       .grid-2 { display: block; }
       .qty-in .input { border: 0; width: auto; padding: 0; min-height: 0; }
@@ -613,6 +634,7 @@ function toast(msg, o) {
   root._t = setTimeout(() => { root.innerHTML = ''; }, o.bad ? 7000 : (o.href ? 8000 : 3200));
 }
 function openSheet(html) {
+  const tr = $('#toast-root'); clearTimeout(tr._t); tr.innerHTML = '';
   const root = $('#sheet');
   root.innerHTML = '<div class="backdrop" data-act="close-sheet"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>' + html + '</div>';
   root.classList.add('open');
@@ -1586,7 +1608,7 @@ function startSheet() {
     return { ingredientId: id, calc: c, qty: s ? String(s.qty) : String(suggestQty(c, ing ? ing.unit : 'kg')), extra: false, was: s && !s.extra && Math.abs(Number(s.calc) - c) > 0.0005 ? Number(s.calc) : null };
   });
   (k.items || []).filter(it => it.extra && calc[it.ingredientId] === undefined).forEach(it => items.push({ ingredientId: it.ingredientId, calc: 0, qty: String(it.qty), extra: true, was: null }));
-  S.ks = { recordId: r.id, items, notes: k.kitchenNotes || '', updatedAt: k.updatedAt, dirty: !k.items || !k.items.length, q: '' };
+  S.ks = { recordId: r.id, items, notes: k.kitchenNotes || '', updatedAt: k.updatedAt, dirty: !k.items || !k.items.length, q: '', checked: {}, open: {}, editing: false, menuOpen: false };
 }
 function sheetGroups() {
   const groups = {};
@@ -1611,46 +1633,153 @@ function fullListText(r, k) {
   if (S.ks.notes) t += '\nNotes: ' + S.ks.notes;
   return t;
 }
+function itemGroupKey(it) { const ing = ingById(it.ingredientId); return ing && ing.supplierId && supById(ing.supplierId) ? ing.supplierId : ''; }
+/** How a quantity compares with the recipe. null = matches the suggestion. */
+function itemFlag(it, ing) {
+  const unit = ing ? ing.unit : '';
+  if (it.qty === '' || isNaN(Number(it.qty))) return { lvl: 'bad', text: 'Enter a quantity (0 if not needed)' };
+  const q = Number(it.qty);
+  if (it.extra) return q > 0 ? null : { lvl: 'warn', text: 'Extra item set to 0' };
+  const sug = suggestQty(it.calc, unit);
+  if (Math.abs(q - sug) < 0.0005) return null;
+  if (it.calc > 0 && q === 0) return { lvl: 'bad', text: 'Set to 0, but the recipe needs ' + fmtQty(it.calc) + ' ' + unit };
+  const ratio = it.calc > 0 ? q / it.calc : 1;
+  if (ratio > 2) return { lvl: 'bad', text: (Math.round(ratio * 10) / 10) + ' times the recipe. Typing mistake?' };
+  if (ratio < 0.5) return { lvl: 'bad', text: 'Less than half of what the recipe needs' };
+  const pct = Math.round((ratio - 1) * 100);
+  if (Math.abs(pct) > 25) return { lvl: 'warn', text: (pct > 0 ? '+' : '') + pct + '% compared with the recipe' };
+  return { lvl: 'info', text: 'Changed by you (suggested ' + fmtQty(sug) + ' ' + unit + ')' };
+}
+function whyRows(it, r, k) {
+  const g = Number(r.guests) || 0;
+  return k.dishIds.map(id => {
+    const d = dishById(id), l = recipeFor(id).find(x => x.ingredientId === it.ingredientId);
+    return d && l ? { d, per: Number(l.qtyPer100), amt: Math.round(Number(l.qtyPer100) * g / 100 * 1000) / 1000 } : null;
+  }).filter(Boolean);
+}
+function groupHasBad(key) { return S.ks.items.some(it => itemGroupKey(it) === key && (itemFlag(it, ingById(it.ingredientId)) || {}).lvl === 'bad'); }
+function checkProgress() {
+  const keys = sheetGroups().map(g => g.sup ? g.sup.id : '');
+  return { done: keys.filter(k => S.ks.checked[k]).length, total: keys.length, keys };
+}
+function approveReady() { const p = checkProgress(); return p.done === p.total; }
+function approveLabel() {
+  const p = checkProgress();
+  return p.done === p.total ? icon('check') + 'Approve quantities' : 'Approve · ' + p.done + ' of ' + p.total + ' checked';
+}
+function flagHtml(f) { return f ? '<div class="flag ' + f.lvl + '">' + (f.lvl === 'info' ? '' : icon('alert', 'sm')) + esc(f.text) + '</div>' : ''; }
+
 function viewSheet() {
   const r = byId(S.route.id), k = kitchenFor(S.route.id);
   if (!r) return '<div class="card">' + emptyState('alert', 'Booking not found', 'Please refresh.') + '</div>';
   if (!k || !k.dishIds.length || !S.ks) return eventCard(r) + '<div class="card" style="margin-top:14px">' + emptyState('chef', 'No menu yet', 'Build the menu first. The ingredient list is then worked out from your recipes.', '<button class="btn btn-primary btn-sm" data-act="menu" data-id="' + esc(r.id) + '">Build menu</button>') + '</div>';
-  const st = kitchenStatus(r), approved = st.key === 'ready' && !S.ks.dirty;
+  const K = S.ks, st = kitchenStatus(r), locked = st.key === 'ready' && !K.editing;
   const ts = iso => iso ? new Date(iso).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+  const groups = sheetGroups();
+
   let banner;
-  if (approved) banner = '<div class="banner banner-ok">' + icon('check', 'sm') + '<span><b>Approved</b> by ' + esc(k.approvedBy) + ' · ' + esc(ts(k.approvedAt)) + '. Supplier orders are ready to send.</span></div>';
-  else if (k.qtyStatus === 'Approved' && Number(k.guestsUsed) !== Number(r.guests)) banner = '<div class="banner banner-bad">' + icon('alert', 'sm') + '<span>Guests changed from <b>' + esc(k.guestsUsed) + '</b> to <b>' + esc(r.guests) + '</b> after approval. <button class="link" data-act="ks-recalc" style="color:inherit;text-decoration:underline">Recalculate</button> and approve again.</span></div>';
-  else if (k.qtyStatus === 'Recheck') banner = '<div class="banner banner-bad">' + icon('alert', 'sm') + '<span>The menu changed after approval. Check the quantities and approve again.</span></div>';
-  else banner = '<div class="banner banner-info">' + icon('chef', 'sm') + '<span>Check each quantity, change anything that looks wrong, then tap <b>Approve</b>. Supplier orders unlock after approval.</span></div>';
+  if (locked) banner = '<div class="banner banner-ok">' + icon('check', 'sm') + '<span><b>Approved</b> by ' + esc(k.approvedBy) + ' · ' + esc(ts(k.approvedAt)) + '. The list is locked. Send the supplier orders below.</span></div>';
+  else if (K.editing) banner = '<div class="banner banner-warn">' + icon('edit', 'sm') + '<span>You are changing an approved list. Suppliers keep the old approval until you approve again. <button class="link" data-act="ks-cancel-edit" style="color:inherit;text-decoration:underline">Cancel changes</button></span></div>';
+  else if (k.qtyStatus === 'Approved' && Number(k.guestsUsed) !== Number(r.guests)) banner = '<div class="banner banner-bad">' + icon('alert', 'sm') + '<span>Guests changed from <b>' + esc(k.guestsUsed) + '</b> to <b>' + esc(r.guests) + '</b> after approval. <button class="link" data-act="ks-recalc" style="color:inherit;text-decoration:underline">Recalculate</button>, check again and approve.</span></div>';
+  else if (k.qtyStatus === 'Recheck') banner = '<div class="banner banner-bad">' + icon('alert', 'sm') + '<span>The menu changed after approval. Check every supplier again and approve.</span></div>';
+  else banner = '<div class="banner banner-info">' + icon('chef', 'sm') + '<span><b>How to check:</b> tap an item to see how it was worked out. Fix anything marked in red, then tap <b>Checked</b> on each supplier. Approve unlocks when all are checked.</span></div>';
+
   const noRecipe = k.dishIds.map(dishById).filter(d => d && !recipeFor(d.id).length);
-  const menuCard = '<div class="card menu-card"><div class="print-only small" style="letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Menu</div><div class="title">' + esc(r.customerName) + '</div><div class="small muted" style="margin-top:4px">' + esc(eventLine(r)) + '</div>' +
+  const stat = (v, l) => '<div class="mini-stat"><b>' + v + '</b><span>' + l + '</span></div>';
+  const summary = '<div class="card card-pad"><div class="hero-top">' + dateTile(r) + '<div style="flex:1;min-width:0"><div style="font:600 19px/1.25 var(--display)">' + esc(r.customerName) + '</div>' +
+    '<div class="small muted">' + esc([r.eventType, r.hall, r.slot].filter(Boolean).join(' · ')) + '</div></div></div>' +
+    '<div class="mini-stats">' + stat(esc(Number(r.guests || 0).toLocaleString('en-IN')), 'guests') + stat(k.dishIds.length, 'dishes') + stat(K.items.length, 'items') + stat(groups.length, 'suppliers') + '</div>' +
+    '<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn btn-secondary btn-sm" data-act="ks-menu">' + icon('bowl', 'sm') + (K.menuOpen ? 'Hide menu' : 'View menu') + '</button>' +
+    '<button class="btn btn-secondary btn-sm" data-act="menu" data-id="' + esc(r.id) + '">' + icon('edit', 'sm') + 'Edit menu</button></div></div>';
+  const menuCard = '<div class="menu-wrap ' + (K.menuOpen ? '' : 'closed') + '"><div class="card menu-card" style="margin-top:14px"><div class="print-only small" style="letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">Menu</div><div class="title">' + esc(r.customerName) + '</div><div class="small muted" style="margin-top:4px">' + esc(eventLine(r)) + '</div>' +
     (k.menuStatus !== 'Final' ? '<div class="no-print" style="margin-top:10px"><span class="tag tag-warn">Menu is still a draft</span></div>' : '') +
     groupedMenu(k.dishIds).map(g => '<h3 class="hi">' + esc(catHi(g.cat)) + '</h3>' + g.dishes.map(d => '<div class="dish hi">' + esc(d.name) + '</div>').join('')).join('') +
-    (k.menuNotes ? '<div class="small muted" style="margin-top:14px">' + esc(k.menuNotes) + '</div>' : '') +
-    '<div class="no-print" style="margin-top:16px"><button class="btn btn-soft btn-sm" data-act="menu" data-id="' + esc(r.id) + '">' + icon('edit', 'sm') + 'Edit menu</button></div></div>';
-  const groups = sheetGroups();
+    (k.menuNotes ? '<div class="small muted" style="margin-top:14px">' + esc(k.menuNotes) + '</div>' : '') + '</div></div>';
+
   const list = groups.map(g => {
-    const wa = g.sup && g.sup.phone && approved ? '<a class="btn btn-wa btn-sm no-print" href="' + esc(waLink(g.sup.phone, orderText(r, g.sup, g.rows))) + '" target="_blank" rel="noopener">' + icon('chat', 'sm') + 'Order</a>' : '';
-    return '<div class="card list" style="margin-top:12px"><div class="sup-h"><span class="avatar ic-info" style="width:34px;height:34px">' + icon('truck', 'sm') + '</span><div class="body"><div class="title">' + esc(g.sup ? g.sup.name : 'No supplier set') + '</div><div class="meta">' +
-      esc(g.sup ? [g.sup.phone, g.rows.length + ' items'].filter(Boolean).join(' · ') : 'Set a supplier on these ingredients to group them') + '</div></div>' + wa + '</div>' +
-      g.rows.map(x => '<div class="qty-row"><div class="body"><div class="title">' + esc(x.ing ? x.ing.name : x.it.ingredientId) + (x.ing && x.ing.nameEn ? ' <span class="muted small">' + esc(x.ing.nameEn) + '</span>' : '') + '</div>' +
-        '<div class="meta">' + (x.it.extra ? 'Extra item' : 'Recipe: ' + fmtQty(x.it.calc) + ' ' + esc(x.ing ? x.ing.unit : '')) + (x.it.was !== null ? ' · <span class="was">was ' + fmtQty(x.it.was) + '</span>' : '') + '</div></div>' +
-        '<div class="qty-in"><input class="input" type="number" min="0" step="any" inputmode="decimal" data-ksq="' + x.i + '" value="' + esc(x.it.qty) + '" aria-label="Quantity to buy"><span class="u">' + esc(x.ing ? x.ing.unit : '') + '</span></div>' +
-        (x.it.extra ? '<button class="icon-x no-print" data-act="ks-remove" data-i="' + x.i + '" aria-label="Remove">' + icon('x', 'sm') + '</button>' : '') + '</div>').join('') + '</div>';
+    const key = g.sup ? g.sup.id : '', checked = !!K.checked[key];
+    let headEnd = '';
+    if (locked) headEnd = g.sup && g.sup.phone ? '<a class="btn btn-wa btn-sm no-print" href="' + esc(waLink(g.sup.phone, orderText(r, g.sup, g.rows))) + '" target="_blank" rel="noopener">' + icon('chat', 'sm') + 'Order</a>' : (g.sup ? '<span class="small muted no-print">No number</span>' : '');
+    else headEnd = '<button class="btn btn-sm no-print ' + (checked ? 'btn-ok' : 'btn-secondary') + '" data-act="ks-check" data-k="' + esc(key) + '" id="ksc-' + esc(key || 'none') + '">' + (checked ? icon('check', 'sm') + 'Checked' : 'Mark checked') + '</button>';
+    return '<div class="card list ks-group ' + (checked && !locked ? 'done' : '') + '" id="ksg-' + esc(key || 'none') + '" style="margin-top:12px"><div class="sup-h"><span class="avatar ic-info" style="width:34px;height:34px">' + icon('truck', 'sm') + '</span><div class="body"><div class="title">' + esc(g.sup ? g.sup.name : 'No supplier set') + '</div><div class="meta">' +
+      esc(g.sup ? [g.sup.phone, g.rows.length + ' items'].filter(Boolean).join(' · ') : g.rows.length + ' items · set a supplier on these ingredients') + '</div></div>' + headEnd + '</div>' +
+      g.rows.map(x => sheetRow(x, r, k, locked)).join('') + '</div>';
   }).join('');
-  const allRows = S.ks.items.map(it => ({ it, ing: ingById(it.ingredientId) })).filter(x => Number(x.it.qty) > 0).sort((a, b) => String(a.ing ? a.ing.category : '').localeCompare(String(b.ing ? b.ing.category : '')) || String(a.ing ? a.ing.name : '').localeCompare(String(b.ing ? b.ing.name : '')));
+
+  const extras = locked ? (K.notes ? '<div class="card card-pad" style="margin-top:12px"><div class="lbl">Notes for Vinod bhai</div><div>' + esc(K.notes).replace(/\n/g, '<br>') + '</div></div>' : '') :
+    '<div class="card card-pad no-print" style="margin-top:12px"><div class="field suggest" style="margin:0"><label for="ks-q">Add extra item</label><input class="input" id="ks-q" placeholder="Gas, disposables, anything not in a recipe" autocomplete="off"><div id="ks-sug"></div></div>' +
+    '<div class="field"><label for="ks-notes">Notes for Vinod bhai</label><textarea class="input" id="ks-notes" placeholder="Delivery timing, storage, extra utensils...">' + esc(K.notes) + '</textarea></div></div>';
+
+  const allRows = K.items.map(it => ({ it, ing: ingById(it.ingredientId) })).filter(x => Number(x.it.qty) > 0).sort((a, b) => String(a.ing ? a.ing.category : '').localeCompare(String(b.ing ? b.ing.category : '')) || String(a.ing ? a.ing.name : '').localeCompare(String(b.ing ? b.ing.name : '')));
+  const td = 'padding:4px;border-bottom:1px solid #ddd';
   const printList = '<div class="print-only page-break"><h2 style="font:600 18px var(--display)">Ingredient list · ' + esc(r.customerName) + '</h2><table style="width:100%;border-collapse:collapse;font-size:13px">' +
     '<tr><th style="text-align:left;border-bottom:1px solid #999;padding:4px">Item</th><th style="text-align:left;border-bottom:1px solid #999;padding:4px">Category</th><th style="text-align:right;border-bottom:1px solid #999;padding:4px">Qty</th><th style="text-align:left;border-bottom:1px solid #999;padding:4px">Supplier</th></tr>' +
-    allRows.map(x => '<tr><td style="padding:4px;border-bottom:1px solid #ddd">' + esc(ingLabel(x.ing)) + '</td><td style="padding:4px;border-bottom:1px solid #ddd">' + esc(x.ing ? x.ing.category : '') + '</td><td style="padding:4px;border-bottom:1px solid #ddd;text-align:right">' + fmtQty(x.it.qty) + ' ' + esc(x.ing ? x.ing.unit : '') + '</td><td style="padding:4px;border-bottom:1px solid #ddd">' + esc(x.ing && supById(x.ing.supplierId) ? supById(x.ing.supplierId).name : '-') + '</td></tr>').join('') + '</table></div>';
-  return '<div class="grid-2"><div>' + '<div class="no-print">' + banner + '</div>' + '<div style="height:14px" class="no-print"></div>' + menuCard +
-    (noRecipe.length ? '<div class="banner banner-warn no-print" style="margin-top:14px">' + icon('alert', 'sm') + '<span>No recipe yet for: <b class="hi">' + esc(noRecipe.map(d => d.name).join(', ')) + '</b>. Add their ingredients below as extra items, or set up the recipe in Kitchen > Dishes.</span></div>' : '') +
-    '<div class="actions no-print" style="grid-template-columns:1fr 1fr"><button class="btn btn-secondary" data-act="ks-print">' + icon('print') + 'Print / PDF</button>' +
-    '<a class="btn btn-secondary" href="' + esc('https://wa.me/?text=' + encodeURIComponent(fullListText(r, k))) + '" target="_blank" rel="noopener">' + icon('share') + 'Share list</a></div></div>' +
-    '<div class="page-break"><div class="section-h" style="margin:0 2px 0"><h2>Purchase list <span class="count">' + S.ks.items.length + ' items</span></h2>' + (S.ks.items.some(i => !i.extra) ? '<button class="link no-print" data-act="ks-recalc">Reset to recipe</button>' : '') + '</div>' + list +
-    '<div class="card card-pad no-print" style="margin-top:12px"><div class="field suggest" style="margin:0"><label for="ks-q">Add extra item</label><input class="input" id="ks-q" placeholder="Gas, disposables, anything not in a recipe" autocomplete="off"><div id="ks-sug"></div></div>' +
-    '<div class="field"><label for="ks-notes">Notes for Vinod bhai</label><textarea class="input" id="ks-notes" placeholder="Delivery timing, storage, extra utensils...">' + esc(S.ks.notes) + '</textarea></div></div></div></div>' +
-    printList +
-    '<div class="savebar"><button class="btn btn-secondary" data-act="ks-save">Save draft</button><button class="btn ' + (approved ? 'btn-ok' : 'btn-primary') + '" data-act="ks-approve">' + icon('check') + (approved ? 'Approved' : 'Approve quantities') + '</button></div>';
+    allRows.map(x => '<tr><td style="' + td + '">' + esc(ingLabel(x.ing)) + '</td><td style="' + td + '">' + esc(x.ing ? x.ing.category : '') + '</td><td style="' + td + ';text-align:right">' + fmtQty(x.it.qty) + ' ' + esc(x.ing ? x.ing.unit : '') + '</td><td style="' + td + '">' + esc(x.ing && supById(x.ing.supplierId) ? supById(x.ing.supplierId).name : '-') + '</td></tr>').join('') + '</table>' +
+    (k.approvedBy && locked ? '<p class="small">Approved by ' + esc(k.approvedBy) + ' · ' + esc(ts(k.approvedAt)) + '</p>' : '') + '</div>';
+
+  const bar = locked
+    ? '<div class="savebar"><button class="btn btn-secondary" data-act="ks-edit">' + icon('edit') + 'Edit quantities</button><button class="btn btn-primary" data-act="ks-print">' + icon('print') + 'Print / PDF</button></div>'
+    : '<div class="savebar"><button class="btn btn-secondary" data-act="ks-save">Save draft</button><button class="btn ' + (approveReady() ? 'btn-primary' : 'btn-soft') + '" data-act="ks-approve" id="ks-approve">' + approveLabel() + '</button></div>';
+
+  return '<div class="grid-2"><div><div class="no-print">' + banner + '</div><div style="height:14px" class="no-print"></div>' + summary + menuCard +
+    (noRecipe.length ? '<div class="banner banner-warn no-print" style="margin-top:14px">' + icon('alert', 'sm') + '<span>No recipe yet for: <b class="hi">' + esc(noRecipe.map(d => d.name).join(', ')) + '</b>. Add their ingredients as extra items, or set up the recipe in Kitchen > Dishes.</span></div>' : '') +
+    (locked ? '<div class="actions no-print" style="grid-template-columns:1fr"><a class="btn btn-secondary" href="' + esc('https://wa.me/?text=' + encodeURIComponent(fullListText(r, k))) + '" target="_blank" rel="noopener">' + icon('share') + 'Share full list with Vinod bhai</a></div>' : '') + '</div>' +
+    '<div class="page-break"><div class="section-h" style="margin:0 2px 0"><h2>Purchase list <span class="count">' + K.items.length + ' items</span></h2>' +
+    (!locked && K.items.some(i => !i.extra) ? '<button class="link no-print" data-act="ks-recalc">Reset to recipe</button>' : '') + '</div>' + list + extras + '</div></div>' +
+    printList + bar;
+}
+function sheetRow(x, r, k, locked) {
+  const unit = x.ing ? x.ing.unit : '', f = locked ? null : itemFlag(x.it, x.ing), open = S.ks.open[x.i];
+  const name = esc(x.ing ? x.ing.name : x.it.ingredientId) + (x.ing && x.ing.nameEn ? ' <span class="muted small">' + esc(x.ing.nameEn) + '</span>' : '');
+  const meta = (x.it.extra ? 'Extra item' : 'Recipe: ' + fmtQty(x.it.calc) + ' ' + esc(unit)) + (x.it.was !== null && !locked ? ' · <span class="was">recipe was ' + fmtQty(x.it.was) + '</span>' : '');
+  const qty = locked ? '<div class="qty-read">' + fmtQty(x.it.qty) + ' <span class="u">' + esc(unit) + '</span></div>'
+    : '<div class="qty-in"><input class="input" type="number" min="0" step="any" inputmode="decimal" data-ksq="' + x.i + '" value="' + esc(x.it.qty) + '" aria-label="Quantity to buy"><span class="u">' + esc(unit) + '</span></div>';
+  let why = '';
+  if (open) {
+    const rows = whyRows(x.it, r, k);
+    why = '<div class="why no-print">' + (x.it.extra || !rows.length ? 'Added by hand, not from a recipe.' :
+      rows.map(w => '<div class="why-row"><span class="hi">' + esc(w.d.name) + '</span><span>' + fmtQty(w.per) + ' ' + esc(unit) + ' per 100 × ' + esc(Number(r.guests).toLocaleString('en-IN')) + ' = <b>' + fmtQty(w.amt) + '</b></span></div>').join('') +
+      (rows.length > 1 ? '<div class="why-row" style="border-top:1px solid var(--line-2);padding-top:6px"><span>Total from recipes</span><b>' + fmtQty(x.it.calc) + ' ' + esc(unit) + '</b></div>' : '') +
+      '<div class="why-row muted"><span>Suggested to buy (rounded up)</span><span>' + fmtQty(suggestQty(x.it.calc, unit)) + ' ' + esc(unit) + '</span></div>') + '</div>';
+  }
+  return '<div class="ks-item" id="ksr-' + x.i + '"><div class="qty-row ' + (f ? f.lvl : '') + '"><button class="body why-btn" data-act="ks-why" data-i="' + x.i + '" aria-expanded="' + (open ? 'true' : 'false') + '">' +
+    '<div class="title">' + name + '</div><div class="meta">' + meta + ' <span class="no-print why-hint">' + (open ? 'Hide' : 'How?') + '</span></div><div id="ksf-' + x.i + '">' + flagHtml(f) + '</div></button>' + qty +
+    (!locked && x.it.extra ? '<button class="icon-x no-print" data-act="ks-remove" data-i="' + x.i + '" aria-label="Remove">' + icon('x', 'sm') + '</button>' : '') + '</div>' + why + '</div>';
+}
+function ksOnQty(i) {
+  const K = S.ks, it = K.items[i], ing = ingById(it.ingredientId), f = itemFlag(it, ing);
+  const row = $('#ksr-' + i + ' .qty-row');
+  if (row) { row.classList.remove('bad', 'warn', 'info'); if (f) row.classList.add(f.lvl); }
+  const fe = $('#ksf-' + i); if (fe) fe.innerHTML = flagHtml(f);
+  const key = itemGroupKey(it);
+  if (K.checked[key]) {
+    K.checked[key] = false;
+    const b = $('#ksc-' + (key || 'none')); if (b) { b.className = 'btn btn-sm no-print btn-secondary'; b.innerHTML = 'Mark checked'; }
+    const g = $('#ksg-' + (key || 'none')); if (g) g.classList.remove('done');
+  }
+  const a = $('#ks-approve'); if (a) { a.innerHTML = approveLabel(); a.className = 'btn ' + (approveReady() ? 'btn-primary' : 'btn-soft'); }
+}
+function approveSheet() {
+  const K = S.ks, r = byId(K.recordId), k = kitchenFor(K.recordId), p = checkProgress();
+  if (p.done < p.total) {
+    const first = p.keys.find(x => !K.checked[x]);
+    const g = $('#ksg-' + (first || 'none'));
+    if (g) g.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return toast('Check every supplier first: ' + (p.total - p.done) + ' left.', { bad: true });
+  }
+  const rows = K.items.map(it => ({ it, ing: ingById(it.ingredientId) }));
+  const changed = rows.filter(x => !x.it.extra && itemFlag(x.it, x.ing));
+  const extras = rows.filter(x => x.it.extra);
+  const noSup = rows.filter(x => !itemGroupKey(x.it)).length;
+  const noRecipe = k.dishIds.map(dishById).filter(d => d && !recipeFor(d.id).length);
+  const li = (x, txt) => '<div class="why-row"><span>' + esc(x.ing ? ingLabel(x.ing) : x.it.ingredientId) + '</span><span>' + txt + '</span></div>';
+  openSheet('<h3>Approve quantities?</h3><p class="sub">' + esc(r.customerName) + ' · ' + esc(Number(r.guests).toLocaleString('en-IN')) + ' guests · ' + esc(fmtLong(r.eventDate)) + '</p>' +
+    '<div class="mini-stats" style="margin:12px 0">' + '<div class="mini-stat"><b>' + K.items.length + '</b><span>items</span></div><div class="mini-stat"><b>' + p.total + '</b><span>suppliers</span></div><div class="mini-stat"><b>' + changed.length + '</b><span>changed</span></div><div class="mini-stat"><b>' + extras.length + '</b><span>extra</span></div></div>' +
+    (changed.length ? '<div class="lbl" style="margin-top:8px">Changed from the recipe</div><div class="why" style="border-radius:12px">' + changed.map(x => li(x, fmtQty(suggestQty(x.it.calc, x.ing ? x.ing.unit : '')) + ' → <b>' + fmtQty(x.it.qty) + ' ' + esc(x.ing ? x.ing.unit : '') + '</b>')).join('') + '</div>' : '<div class="banner banner-ok">' + icon('check', 'sm') + '<span>All recipe items are as suggested.</span></div>') +
+    (extras.length ? '<div class="lbl" style="margin-top:12px">Extra items</div><div class="why" style="border-radius:12px">' + extras.map(x => li(x, '<b>' + fmtQty(x.it.qty) + ' ' + esc(x.ing ? x.ing.unit : '') + '</b>')).join('') + '</div>' : '') +
+    (noSup || noRecipe.length ? '<div class="banner banner-warn" style="margin-top:12px">' + icon('alert', 'sm') + '<span>' + [noSup ? noSup + ' item(s) have no supplier and won\'t be in any WhatsApp order.' : '', noRecipe.length ? 'No recipe for: ' + esc(noRecipe.map(d => d.name).join(', ')) + '.' : ''].filter(Boolean).join(' ') + '</span></div>' : '') +
+    '<p class="small muted" style="margin-top:12px">After approval the list is locked and supplier orders can be sent.</p>' +
+    '<div class="btns"><button class="btn btn-secondary" data-act="close-sheet">Go back</button><button class="btn btn-ok" data-act="ks-confirm">' + icon('check') + 'Approve</button></div>');
 }
 async function saveSheet(btn, approve) {
   const K = S.ks;
@@ -1658,10 +1787,13 @@ async function saveSheet(btn, approve) {
   try {
     await mutate('apiSaveQuantities', { recordId: K.recordId, updatedAt: K.updatedAt, approve: !!approve, kitchenNotes: ($('#ks-notes') || { value: K.notes }).value.trim(),
       items: K.items.map(i => ({ ingredientId: i.ingredientId, calc: i.calc, qty: Number(i.qty), extra: i.extra })) }, btn);
-    startSheet(); render();
-    toast(approve ? 'Quantities approved. Supplier orders unlocked.' : 'Draft saved');
+    const menuOpen = K.menuOpen;
+    closeSheet(); startSheet(); S.ks.menuOpen = menuOpen; render(); window.scrollTo(0, 0);
+    toast(approve ? 'Approved and locked. Supplier orders are ready.' : 'Draft saved. It still needs approval.');
   } catch (e) { /* shown */ }
 }
+
+function keepNotes() { const n = $('#ks-notes'); if (n && S.ks) S.ks.notes = n.value; }
 
 /* =================================================================== kitchen: booking page card */
 
@@ -1765,11 +1897,22 @@ const ACT = {
   'sup-open': el => supplierSheet(supById(el.dataset.id)),
   'sup-pick': el => { S.supForm.active = el.dataset.v; el.parentNode.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === el)); },
   'sup-save': el => saveSupplier(el),
-  'ks-add': el => { S.ks.items.push({ ingredientId: el.dataset.id, calc: 0, qty: '', extra: true, was: null }); S.ks.dirty = true; S.ks.notes = $('#ks-notes').value; render(); const ins = document.querySelectorAll('[data-ksq]'); ins.forEach(x => { if (x.value === '') x.focus(); }); },
-  'ks-remove': el => { S.ks.items.splice(Number(el.dataset.i), 1); S.ks.dirty = true; S.ks.notes = $('#ks-notes').value; render(); },
-  'ks-recalc': () => { S.ks.items.forEach(i => { if (!i.extra) { const ing = ingById(i.ingredientId); i.qty = String(suggestQty(i.calc, ing ? ing.unit : 'kg')); i.was = null; } }); S.ks.dirty = true; S.ks.notes = $('#ks-notes') ? $('#ks-notes').value : S.ks.notes; render(); toast('Quantities reset from recipes. Check and approve.'); },
+  'ks-add': el => { S.ks.items.push({ ingredientId: el.dataset.id, calc: 0, qty: '', extra: true, was: null }); S.ks.checked[itemGroupKey(S.ks.items[S.ks.items.length - 1])] = false; S.ks.dirty = true; S.ks.notes = $('#ks-notes').value; render(); const ins = document.querySelectorAll('[data-ksq]'); ins.forEach(x => { if (x.value === '') x.focus(); }); },
+  'ks-remove': el => { S.ks.checked[itemGroupKey(S.ks.items[Number(el.dataset.i)])] = false; S.ks.items.splice(Number(el.dataset.i), 1); S.ks.open = {}; S.ks.dirty = true; S.ks.notes = $('#ks-notes').value; render(); },
+  'ks-recalc': () => { S.ks.checked = {}; S.ks.items.forEach(i => { if (!i.extra) { const ing = ingById(i.ingredientId); i.qty = String(suggestQty(i.calc, ing ? ing.unit : 'kg')); i.was = null; } }); S.ks.dirty = true; S.ks.notes = $('#ks-notes') ? $('#ks-notes').value : S.ks.notes; render(); toast('Quantities reset from recipes. Check and approve.'); },
   'ks-save': el => saveSheet(el, false),
-  'ks-approve': el => saveSheet(el, true),
+  'ks-approve': () => approveSheet(),
+  'ks-confirm': el => saveSheet(el, true),
+  'ks-why': el => { const i = Number(el.dataset.i); S.ks.open[i] = !S.ks.open[i]; keepNotes(); const y = window.scrollY; render(); window.scrollTo(0, y); },
+  'ks-check': el => {
+    const key = el.dataset.k;
+    if (!S.ks.checked[key] && groupHasBad(key)) return toast('Fix the items marked in red in this supplier first.', { bad: true });
+    S.ks.checked[key] = !S.ks.checked[key]; keepNotes();
+    const y = window.scrollY; render(); window.scrollTo(0, y);
+  },
+  'ks-menu': () => { S.ks.menuOpen = !S.ks.menuOpen; keepNotes(); const y = window.scrollY; render(); window.scrollTo(0, y); },
+  'ks-edit': () => { S.ks.editing = true; S.ks.checked = {}; render(); toast('Editing. Check each supplier and approve again to save the changes.'); },
+  'ks-cancel-edit': () => { const m = S.ks.menuOpen; startSheet(); S.ks.menuOpen = m; render(); },
   'ks-print': () => window.print()
 };
 function shiftMonth(n) {
@@ -1801,7 +1944,7 @@ document.addEventListener('input', e => {
   if (el.id === 'ing-name' && S.ingForm) { S.ingForm.name = el.value; S.ingForm.hiTouched = el.value.trim() !== ''; return; }
   if (el.dataset && el.dataset.dfq !== undefined && S.df) { S.df.recipe[Number(el.dataset.dfq)].qtyPer100 = el.value; return; }
   if (el.id === 'df-q') { $('#df-sug').innerHTML = ingSuggest(el.value, S.df.recipe.map(l => l.ingredientId), 'df-add', 'dish'); return; }
-  if (el.dataset && el.dataset.ksq !== undefined && S.ks) { S.ks.items[Number(el.dataset.ksq)].qty = el.value; S.ks.dirty = true; return; }
+  if (el.dataset && el.dataset.ksq !== undefined && S.ks) { S.ks.items[Number(el.dataset.ksq)].qty = el.value; S.ks.dirty = true; ksOnQty(Number(el.dataset.ksq)); return; }
   if (el.id === 'ks-q') { $('#ks-sug').innerHTML = ingSuggest(el.value, S.ks.items.map(i => i.ingredientId), 'ks-add', 'sheet'); return; }
   if (el.id === 'ks-notes') { S.ks.notes = el.value; return; }
   if (el.id === 'bk-q') { S.ui.q = el.value; $('#bk-tabs').innerHTML = bkTabs(); $('#bk-list').innerHTML = bkList(); }
