@@ -1361,6 +1361,12 @@ function kList() {
 /* =================================================================== kitchen: menu builder */
 
 function startMenu() {
+  if (S.mbKeep && S.mbKeep.recordId === S.route.id) {
+    S.mb = S.mbKeep; S.mbKeep = null;
+    if (!S.route.from && S.mb.from) S.route.from = S.mb.from;
+    return;
+  }
+  S.mbKeep = null;
   const r = byId(S.route.id), k = kitchenFor(S.route.id);
   S.mb = r ? { recordId: r.id, dishIds: k ? k.dishIds.slice() : [], status: k ? k.menuStatus || 'Draft' : 'Draft', notes: k ? k.menuNotes || '' : '', q: '', cat: '', updatedAt: k ? k.updatedAt : '' } : null;
 }
@@ -1369,12 +1375,13 @@ function viewMenu() {
   if (!r || !S.mb) return '<div class="card">' + emptyState('alert', 'Booking not found', 'Please refresh.') + '</div>';
   const cats = S.data.lists.dishCategories.map(c => c[0]).filter(c => activeDishes().some(d => d.category === c));
   if (!activeDishes().length) {
-    return eventCard(r) + '<div class="card" style="margin-top:14px">' + emptyState('bowl', 'No dishes yet', 'Add your dishes first (with their recipes). Then pick them here to build the menu.', '<button class="btn btn-primary btn-sm" data-act="dish-new">' + icon('plus', 'sm') + 'Add a dish</button>') + '</div>';
+    return eventCard(r) + '<div class="card" style="margin-top:14px">' + emptyState('bowl', 'No dishes yet', 'Add your dishes first (with their recipes). Then pick them here to build the menu.', '<button class="btn btn-primary btn-sm" data-act="mb-new-dish">' + icon('plus', 'sm') + 'Add a dish</button>') + '</div>';
   }
   return '<div class="form-wrap">' + eventCard(r) +
     '<div class="card card-pad" style="margin-top:14px"><div class="section-h" style="margin:0 0 10px"><h2>Selected <span class="count" id="mb-count"></span></h2></div><div id="mb-selected"></div>' +
     '<div class="field"><span class="lbl">Menu status</span><div class="seg" id="mb-status"></div><div class="hint">Mark it <b>Final</b> once the customer confirms after food tasting.</div></div></div>' +
-    '<div class="section"><div class="toolbar"><label class="search">' + icon('search') + '<input class="input" id="mb-q" type="search" placeholder="Search dishes" autocomplete="off"></label></div>' +
+    '<div class="section"><div class="toolbar"><label class="search">' + icon('search') + '<input class="input" id="mb-q" type="search" placeholder="Search dishes" autocomplete="off"></label>' +
+    '<button class="btn btn-secondary" data-act="mb-new-dish">' + icon('plus', 'sm') + 'New dish</button></div>' +
     '<div class="chips scroll" style="margin-bottom:4px">' + ['', ...cats].map(c => '<button class="chip ' + (S.mb.cat === c ? 'on' : '') + '" data-act="mb-cat" data-v="' + esc(c) + '">' + esc(c || 'All') + '</button>').join('') + '</div>' +
     '<div id="mb-list"></div></div>' +
     '<div class="card card-pad" style="margin-top:14px"><div class="field" style="margin:0"><label for="mb-notes">Menu notes</label><textarea class="input" id="mb-notes" placeholder="Less spicy, Jain food for 20 guests, live counter...">' + esc(S.mb.notes) + '</textarea></div></div>' +
@@ -1396,7 +1403,8 @@ function refreshMenu() {
       const on = sel.indexOf(d.id) !== -1, n = recipeFor(d.id).length;
       return '<button class="toggle-row ' + (on ? 'on' : '') + '" data-act="mb-toggle" data-id="' + esc(d.id) + '"><span class="box">' + icon('check', 'sm') + '</span><div class="body"><div class="title hi">' + esc(d.name) + '</div>' +
         (d.nameEn ? '<div class="meta">' + esc(d.nameEn) + '</div>' : '') + '</div>' + (n ? '' : '<span class="tag tag-warn">No recipe</span>') + '</button>';
-    }).join('') + '</div>').join('') : '<div class="card">' + emptyState('search', 'No dishes match', '') + '</div>';
+    }).join('') + '</div>').join('') : '<div class="card">' + emptyState('search', 'No dishes match', q ? 'This dish is not in your list yet.' : '',
+      q ? '<button class="btn btn-primary btn-sm" data-act="mb-new-dish">' + icon('plus', 'sm') + 'Create "' + esc(S.mb.q.trim()) + '"</button>' : '') + '</div>';
 }
 async function saveMenu(btn) {
   const M = S.mb, id = M.recordId;
@@ -1415,6 +1423,8 @@ function startDish() {
   if (S.route.id && !d) { S.df = null; return; }
   S.df = d ? { id: d.id, name: d.name, nameEn: d.nameEn || '', category: d.category, active: d.active === 'No' ? 'No' : 'Yes', recipe: recipeFor(d.id).map(l => ({ ingredientId: l.ingredientId, qtyPer100: String(l.qtyPer100) })) }
     : { id: '', name: '', nameEn: '', category: '', active: 'Yes', recipe: [] };
+  if (!d && S.prefillDish) { Object.assign(S.df, S.prefillDish); }
+  S.prefillDish = null;
   S.dfErr = '';
 }
 function viewDish() {
@@ -1456,6 +1466,14 @@ async function saveDish(btn) {
   if (msg) return toast(msg, { bad: true });
   try {
     const res = await mutate('apiSaveDish', { id: F.id, name: F.name, nameEn: F.nameEn.trim(), category: F.category, active: F.active, recipe: F.recipe.map(l => ({ ingredientId: l.ingredientId, qtyPer100: Number(l.qtyPer100) })) }, btn);
+    const from = S.route.from;
+    if (from && from.view === 'menu' && S.mbKeep && S.mbKeep.recordId === from.id) {
+      if (res.dish.active !== 'No' && S.mbKeep.dishIds.indexOf(res.dish.id) === -1) S.mbKeep.dishIds.push(res.dish.id);
+      S.mbKeep.q = ''; S.mbKeep.cat = '';
+      go('menu', from.id);
+      toast('Dish saved and added to the menu. Remember to tap Save menu.');
+      return;
+    }
     toast('Dish saved · ' + res.dish.name);
     S.ui.kTab = 'dishes';
     go('kitchen');
@@ -1683,6 +1701,13 @@ const ACT = {
   'mb-cat': el => { S.mb.cat = el.dataset.v; document.querySelectorAll('[data-act="mb-cat"]').forEach(c => c.classList.toggle('on', c === el)); refreshMenu(); },
   'mb-status': el => { S.mb.status = el.dataset.v; refreshMenu(); },
   'mb-save': el => saveMenu(el),
+  'mb-new-dish': () => {
+    const q = S.mb.q.trim(), hasHindi = /[\u0900-\u097F]/.test(q);
+    if ($('#mb-notes')) S.mb.notes = $('#mb-notes').value;
+    S.mb.from = S.route.from; S.mbKeep = S.mb;
+    S.prefillDish = q ? (hasHindi ? { name: q } : { nameEn: q }) : null;
+    go('dish', '', { from: { view: 'menu', id: S.route.id } });
+  },
   'dish-new': () => go('dish', '', { from: { view: S.route.view, id: S.route.id } }),
   'dish-open': el => go('dish', el.dataset.id, { from: { view: 'kitchen' } }),
   'df-cat': el => { S.df.category = el.dataset.v; refreshDish(); },
