@@ -692,7 +692,7 @@ function render() {
   v.innerHTML = demoBar() + fn();
   if (S.route.view === 'form') afterFormRender();
   if (S.route.view === 'menu') { refreshMenu(); const q = $('#mb-q'); if (q) q.value = S.mb ? S.mb.q : ''; }
-  if (S.route.view === 'dish') refreshDish();
+  if (S.route.view === 'dish') { refreshDish(); if (S.df && S.df.needTr) { S.df.needTr = false; translateNow('dish'); } }
 }
 function demoBar() {
   if (!DEMO || EDIT_VIEWS.indexOf(S.route.view) !== -1) return '';
@@ -1297,6 +1297,42 @@ function ingSuggest(q, exclude, act, ctx) {
     '<button type="button" data-act="ing-new" data-for="' + ctx + '" data-name="' + esc(q) + '" style="color:var(--brand);font-weight:650">' + icon('plus', 'sm') + ' New ingredient "' + esc(q) + '"</button></div>';
 }
 
+/* =================================================================== kitchen: English to Hindi */
+
+const TR = { timer: null, seq: 0 };
+const TR_IDS = { dish: { en: 'df-en', hi: 'df-name', st: 'df-name-st' }, ing: { en: 'ing-en', hi: 'ing-name', st: 'ing-name-st' } };
+function trForm(ctx) { return ctx === 'dish' ? S.df : S.ingForm; }
+function trField(id, dfKey, value, ph, ctx) {
+  return '<div class="field"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><label for="' + id + '">Name in Hindi <span class="req">*</span></label>' +
+    '<button type="button" class="link" data-act="translate" data-for="' + ctx + '">' + icon('refresh', 'sm') + ' Translate</button></div>' +
+    '<input class="input hi" id="' + id + '"' + (dfKey ? ' data-df="' + dfKey + '"' : '') + ' value="' + esc(value) + '" placeholder="' + ph + '" autocomplete="off">' +
+    '<div class="hint" id="' + id + '-st">Filled in automatically from the English name. Check the spelling.</div></div>';
+}
+function trStatus(ctx, text, bad) { const el = $('#' + TR_IDS[ctx].st); if (el) { el.textContent = text; el.style.color = bad ? 'var(--bad)' : ''; } }
+function scheduleTranslate(ctx) {
+  clearTimeout(TR.timer);
+  TR.timer = setTimeout(() => translateNow(ctx), 650);
+}
+async function translateNow(ctx) {
+  clearTimeout(TR.timer);
+  const F = trForm(ctx), ids = TR_IDS[ctx], enEl = $('#' + ids.en);
+  const en = (enEl ? enEl.value : F.nameEn || '').trim();
+  if (!F || !en) return;
+  const seq = ++TR.seq;
+  trStatus(ctx, 'Translating...');
+  try {
+    const hi = await call('apiTranslate', en);
+    const cur = $('#' + ids.en);
+    if (seq !== TR.seq || !cur || cur.value.trim() !== en || trForm(ctx) !== F) return;
+    if (!hi) { trStatus(ctx, 'No translation found. Please type the Hindi name.', true); return; }
+    F.name = hi; F.hiTouched = false;
+    const hiEl = $('#' + ids.hi); if (hiEl) hiEl.value = hi;
+    trStatus(ctx, 'Translated automatically. Change it if the spelling is not right.');
+  } catch (e) {
+    if (seq === TR.seq) trStatus(ctx, e.message, true);
+  }
+}
+
 /* =================================================================== kitchen: list views */
 
 const K_TABS = [['events', 'Events'], ['dishes', 'Dishes'], ['ingredients', 'Ingredients'], ['suppliers', 'Suppliers']];
@@ -1424,6 +1460,8 @@ function startDish() {
   S.df = d ? { id: d.id, name: d.name, nameEn: d.nameEn || '', category: d.category, active: d.active === 'No' ? 'No' : 'Yes', recipe: recipeFor(d.id).map(l => ({ ingredientId: l.ingredientId, qtyPer100: String(l.qtyPer100) })) }
     : { id: '', name: '', nameEn: '', category: '', active: 'Yes', recipe: [] };
   if (!d && S.prefillDish) { Object.assign(S.df, S.prefillDish); }
+  S.df.hiTouched = !!(d || S.df.name);
+  S.df.needTr = !S.df.hiTouched && !!S.df.nameEn;
   S.prefillDish = null;
   S.dfErr = '';
 }
@@ -1432,8 +1470,8 @@ function viewDish() {
   const F = S.df;
   return '<div class="form-wrap"><div class="card">' +
     '<div class="form-sec"><h3>' + icon('bowl', 'sm') + 'Dish</h3>' +
-      '<div class="field"><label for="df-name">Name in Hindi <span class="req">*</span></label><input class="input hi" id="df-name" data-df="name" value="' + esc(F.name) + '" placeholder="पनीर बटर मसाला"' + (F.id ? '' : ' autofocus') + '></div>' +
-      '<div class="field"><label for="df-en">English name</label><input class="input" id="df-en" data-df="nameEn" value="' + esc(F.nameEn) + '" placeholder="Paneer Butter Masala"></div>' +
+      '<div class="field"><label for="df-en">Dish name in English</label><input class="input" id="df-en" data-df="nameEn" value="' + esc(F.nameEn) + '" placeholder="Paneer Butter Masala" autocomplete="off"' + (F.id ? '' : ' autofocus') + '></div>' +
+      trField('df-name', 'name', F.name, 'पनीर बटर मसाला', 'dish') +
       '<div class="field"><span class="lbl">Category <span class="req">*</span></span><div class="chips" id="df-cats"></div></div>' +
       (F.id ? '<div class="field"><span class="lbl">Show in menus</span><div class="seg" id="df-active"></div></div>' : '') +
     '</div>' +
@@ -1459,7 +1497,7 @@ async function saveDish(btn) {
   const F = S.df, err = $('#df-err');
   F.name = F.name.trim();
   let msg = '';
-  if (!F.name) msg = 'Enter the dish name in Hindi.';
+  if (!F.name) msg = 'The Hindi name is empty. Tap Translate or type it.';
   else if (!F.category) msg = 'Choose a category.';
   else if (F.recipe.some(l => !(Number(l.qtyPer100) > 0))) msg = 'Every ingredient needs a quantity more than 0 (or remove it).';
   err.textContent = msg;
@@ -1483,13 +1521,15 @@ async function saveDish(btn) {
 /* =================================================================== kitchen: ingredient & supplier sheets */
 
 function ingredientSheet(ing, ctx, presetName) {
-  S.ingForm = ing ? Object.assign({}, ing) : { id: '', name: presetName || '', nameEn: '', unit: 'kg', category: 'Grocery', supplierId: '', active: 'Yes' };
+  const preset = String(presetName || ''), presetHi = /[\u0900-\u097F]/.test(preset);
+  S.ingForm = ing ? Object.assign({}, ing) : { id: '', name: presetHi ? preset : '', nameEn: presetHi ? '' : preset, unit: 'kg', category: 'Grocery', supplierId: '', active: 'Yes' };
+  S.ingForm.hiTouched = !!(ing || presetHi);
   S.ingCtx = ctx || '';
   const F = S.ingForm, L = S.data.lists;
   const sups = (S.data.suppliers || []).filter(s => s.active !== 'No' || s.id === F.supplierId);
   openSheet('<h3>' + (ing ? 'Edit ingredient' : 'New ingredient') + '</h3>' +
-    '<div class="field"><label for="ing-name">Name <span class="req">*</span></label><input class="input hi" id="ing-name" value="' + esc(F.name) + '" placeholder="पनीर" autofocus></div>' +
-    '<div class="field"><label for="ing-en">English name</label><input class="input" id="ing-en" value="' + esc(F.nameEn) + '" placeholder="Paneer"></div>' +
+    '<div class="field"><label for="ing-en">Name in English</label><input class="input" id="ing-en" value="' + esc(F.nameEn) + '" placeholder="Paneer" autocomplete="off" autofocus></div>' +
+    trField('ing-name', '', F.name, 'पनीर', 'ing') +
     '<div class="field"><span class="lbl">Unit <span class="req">*</span></span><div class="chips" id="ing-units">' + L.units.map(u => '<button class="chip ' + (F.unit === u ? 'on' : '') + '" data-act="ing-pick" data-k="unit" data-v="' + u + '">' + u + '</button>').join('') + '</div></div>' +
     '<div class="field"><span class="lbl">Category</span><div class="chips" id="ing-cats">' + L.ingredientCategories.map(c => '<button class="chip ' + (F.category === c ? 'on' : '') + '" data-act="ing-pick" data-k="category" data-v="' + esc(c) + '">' + esc(c) + '</button>').join('') + '</div></div>' +
     '<div class="field"><label for="ing-sup">Supplier</label><select class="input" id="ing-sup"><option value="">No supplier yet</option>' +
@@ -1497,11 +1537,12 @@ function ingredientSheet(ing, ctx, presetName) {
     (ing ? '<div class="field"><span class="lbl">Status</span><div class="chips" id="ing-active">' + [['Yes', 'In use'], ['No', 'Hidden']].map(x => '<button class="chip ' + (F.active === x[0] ? 'on' : '') + '" data-act="ing-pick" data-k="active" data-v="' + x[0] + '">' + x[1] + '</button>').join('') + '</div></div>' : '') +
     '<div class="err" id="ing-err"></div>' +
     '<div class="btns"><button class="btn btn-secondary" data-act="close-sheet">Cancel</button><button class="btn btn-primary" data-act="ing-save">' + icon('check') + 'Save</button></div>');
+  if (!F.hiTouched && F.nameEn) translateNow('ing');
 }
 async function saveIngredient(btn) {
   const F = S.ingForm;
   F.name = $('#ing-name').value.trim(); F.nameEn = $('#ing-en').value.trim(); F.supplierId = $('#ing-sup').value;
-  if (!F.name) { $('#ing-err').textContent = 'Enter the ingredient name.'; return; }
+  if (!F.name) { $('#ing-err').textContent = 'The Hindi name is empty. Tap Translate or type it.'; return; }
   try {
     const saved = await mutate('apiSaveIngredient', { id: F.id, name: F.name, nameEn: F.nameEn, unit: F.unit, category: F.category, supplierId: F.supplierId, active: F.active }, btn);
     closeSheet();
@@ -1701,6 +1742,7 @@ const ACT = {
   'mb-cat': el => { S.mb.cat = el.dataset.v; document.querySelectorAll('[data-act="mb-cat"]').forEach(c => c.classList.toggle('on', c === el)); refreshMenu(); },
   'mb-status': el => { S.mb.status = el.dataset.v; refreshMenu(); },
   'mb-save': el => saveMenu(el),
+  'translate': el => { const F = trForm(el.dataset.for); if (F) { F.hiTouched = false; translateNow(el.dataset.for); } },
   'mb-new-dish': () => {
     const q = S.mb.q.trim(), hasHindi = /[\u0900-\u097F]/.test(q);
     if ($('#mb-notes')) S.mb.notes = $('#mb-notes').value;
@@ -1749,7 +1791,14 @@ document.addEventListener('input', e => {
   if (el.id === 'k-q') { S.ui.kq = el.value; $('#k-list').innerHTML = kList(); return; }
   if (el.id === 'mb-q') { S.mb.q = el.value; refreshMenu(); return; }
   if (el.id === 'mb-notes') { S.mb.notes = el.value; return; }
-  if (el.dataset && el.dataset.df && S.df) { S.df[el.dataset.df] = el.value; return; }
+  if (el.dataset && el.dataset.df && S.df) {
+    S.df[el.dataset.df] = el.value;
+    if (el.dataset.df === 'nameEn' && !S.df.hiTouched) scheduleTranslate('dish');
+    if (el.dataset.df === 'name') S.df.hiTouched = el.value.trim() !== '';
+    return;
+  }
+  if (el.id === 'ing-en' && S.ingForm) { S.ingForm.nameEn = el.value; if (!S.ingForm.hiTouched) scheduleTranslate('ing'); return; }
+  if (el.id === 'ing-name' && S.ingForm) { S.ingForm.name = el.value; S.ingForm.hiTouched = el.value.trim() !== ''; return; }
   if (el.dataset && el.dataset.dfq !== undefined && S.df) { S.df.recipe[Number(el.dataset.dfq)].qtyPer100 = el.value; return; }
   if (el.id === 'df-q') { $('#df-sug').innerHTML = ingSuggest(el.value, S.df.recipe.map(l => l.ingredientId), 'df-add', 'dish'); return; }
   if (el.dataset && el.dataset.ksq !== undefined && S.ks) { S.ks.items[Number(el.dataset.ksq)].qty = el.value; S.ks.dirty = true; return; }
@@ -1790,6 +1839,16 @@ const DemoServer = (() => {
     menuStatuses: ['Draft', 'Final'],
     qtyStatuses: ['Draft', 'Approved', 'Recheck']
   };
+  // Demo only: a small word list. The live app uses Google Translate.
+  const DEMO_HI = { paneer: 'पनीर', butter: 'बटर', masala: 'मसाला', dal: 'दाल', makhani: 'मखनी', jeera: 'जीरा', rice: 'राइस', naan: 'नान', roti: 'रोटी',
+    tandoori: 'तंदूरी', gulab: 'गुलाब', jamun: 'जामुन', kaju: 'काजू', katli: 'कतली', mix: 'मिक्स', veg: 'वेज', salad: 'सलाद', green: 'ग्रीन', raita: 'रायता',
+    boondi: 'बूंदी', chaas: 'छाछ', lassi: 'लस्सी', kheer: 'खीर', halwa: 'हलवा', gajar: 'गाजर', aloo: 'आलू', gobi: 'गोभी', matar: 'मटर', chole: 'छोले',
+    bhature: 'भटूरे', puri: 'पूरी', kachori: 'कचौरी', samosa: 'समोसा', dhokla: 'ढोकला', tikka: 'टिक्का', kofta: 'कोफ्ता', malai: 'मलाई', shahi: 'शाही',
+    kadai: 'कड़ाई', palak: 'पालक', rasmalai: 'रसमलाई', jalebi: 'जलेबी', rabdi: 'रबड़ी', biryani: 'बिरयानी', pulao: 'पुलाव', papad: 'पापड़', soup: 'सूप',
+    tomato: 'टमाटर', manchurian: 'मंचूरियन', paratha: 'पराठा', kulcha: 'कुलचा', rajma: 'राजमा', kadhi: 'कढ़ी', khichdi: 'खिचड़ी', dahi: 'दही', vada: 'वड़ा',
+    chaat: 'चाट', pav: 'पाव', bhaji: 'भाजी', ice: 'आइस', cream: 'क्रीम', fruit: 'फ्रूट', onion: 'प्याज़', capsicum: 'शिमला मिर्च', cashew: 'काजू',
+    sugar: 'चीनी', ghee: 'घी', oil: 'तेल', milk: 'दूध', curd: 'दही', flour: 'आटा', cumin: 'जीरा', salt: 'नमक', potato: 'आलू', peas: 'मटर',
+    spinach: 'पालक', carrot: 'गाजर', mushroom: 'मशरूम', khoya: 'खोया', sweet: 'स्वीट', corn: 'कॉर्न', and: 'और', with: 'के साथ' };
   const EMPTY = () => ({ records: [], payments: [], suppliers: [], ingredients: [], dishes: [], recipes: [], kitchen: [] });
   const HALLS = ['Mahavir Banquet', 'Nirmala Hall', 'Vrindavan Vatika', 'C.H. Hall', 'Barfiwala Hall', 'M.M. Public School'].map(n => ({ name: n, capacity: '', active: 'Yes' }));
   const today = () => { const x = new Date(); return new Date(x.getTime() - x.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
@@ -1838,6 +1897,7 @@ const DemoServer = (() => {
       db.payments.push(pay); store(db);
       return pay;
     },
+    apiTranslate: (text) => String(text || '').trim().split(/\s+/).filter(Boolean).map(w => DEMO_HI[w.toLowerCase()] || w).join(' '),
     apiSaveSupplier: (input) => {
       const db = Object.assign(EMPTY(), load());
       const rec = upsert(db.suppliers, input, 'SUP-', 'Supplier');

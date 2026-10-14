@@ -53,6 +53,7 @@ function load(user = 'staff@example.com') {
     Utilities: { formatDate: (d) => d.toISOString().slice(0, 10) },
     LockService: { getScriptLock: () => ({ waitLock() {}, releaseLock() {} }) },
     HtmlService: {},
+    LanguageApp: { translate: (t, from, to) => { if (t === 'fail') throw new Error('quota'); return '[' + from + '>' + to + '] ' + t; } },
     _user: user
   };
   vm.createContext(ctx);
@@ -229,4 +230,11 @@ test('menu, quantities and approval flow for a booking', () => {
   k = api.apiSaveQuantities({ recordId: rec.id, items: [{ ingredientId: rice.id, calc: 30, qty: 30 }] });
   assert.strictEqual(k.qtyStatus, 'Draft');
   assert.strictEqual(k.approvedBy, '');
+});
+
+test('translates English names to Hindi and reports failures clearly', () => {
+  const { api } = load();
+  assert.strictEqual(api.apiTranslate('  Paneer Tikka '), '[en>hi] Paneer Tikka');
+  assert.strictEqual(api.apiTranslate(''), '');
+  assert.throws(() => api.apiTranslate('fail'), /type the Hindi name/);
 });

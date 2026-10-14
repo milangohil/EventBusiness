@@ -180,6 +180,17 @@ function apiBootstrap() {
   };
 }
 
+/** English to Hindi for dish and ingredient names, using Google Translate built into Apps Script. */
+function apiTranslate(text) {
+  text = String(text || '').trim().slice(0, 200);
+  if (!text) return '';
+  try {
+    return LanguageApp.translate(text, 'en', 'hi');
+  } catch (e) {
+    throw new Error('Translation is not available right now. Please type the Hindi name.');
+  }
+}
+
 // ---------------------------------------------------------------- kitchen API (Stage 2)
 
 function apiSaveSupplier(input) {
